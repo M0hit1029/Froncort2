@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useActivityStore, ActivityEvent } from '@/store/activityStore';
 import { subscribeToProject, RealtimeEvent } from '@/lib/realtime';
@@ -19,11 +19,20 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
   const projects = useProjectStore((state) => state.projects);
   const documents = useDocumentStore((state) => state.documents);
   const { tasks, boards } = useKanbanStore();
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   // Filter activities for this project
   const projectActivities = activities.filter(
     (activity) => activity.data.projectId === projectId
   );
+
+  // Update current time every minute for relative timestamps
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRealtimeEvent = useCallback((event: RealtimeEvent) => {
     const user = users.find((u) => u.id === event.userId);
@@ -120,9 +129,8 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
     }
   };
 
-  const formatTimestamp = useCallback((timestamp: number): string => {
-    const now = Date.now();
-    const diff = now - timestamp;
+  const formatTimestamp = (timestamp: number): string => {
+    const diff = currentTime - timestamp;
     
     if (diff < 60000) {
       return 'Just now';
@@ -135,7 +143,7 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
     } else {
       return new Date(timestamp).toLocaleString();
     }
-  }, []);
+  };
 
   return (
     <div className="w-full">

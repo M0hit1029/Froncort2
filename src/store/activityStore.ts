@@ -32,7 +32,7 @@ export const useActivityStore = create<ActivityStore>((set, get) => ({
   addActivity: (activity) => {
     const newActivity: ActivityEvent = {
       ...activity,
-      id: `activity-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      id: `activity-${crypto.randomUUID()}`,
       timestamp: Date.now(),
     };
     
