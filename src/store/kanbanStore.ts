@@ -105,9 +105,16 @@ export const useKanbanStore = create<KanbanStore>((set, get) => ({
       const task = state.tasks.find((t) => t.id === taskId);
       if (!task) return state;
       
+      const oldBoardId = task.boardId;
+      const oldPosition = task.position;
+      
       const updatedTasks = state.tasks.map((t) => {
         if (t.id === taskId) {
           return { ...t, boardId: newBoardId, position: newPosition };
+        }
+        // Update positions in the source board (close the gap)
+        if (t.boardId === oldBoardId && t.position > oldPosition) {
+          return { ...t, position: t.position - 1 };
         }
         // Update positions of other tasks in the target board
         if (t.boardId === newBoardId && t.position >= newPosition) {
