@@ -24,7 +24,7 @@ export const useDocumentStore = create<DocumentStore>()(
       
       addDocument: (projectId: string, title: string) => {
         const newDoc: Document = {
-          id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
           projectId,
           title,
           createdAt: Date.now(),

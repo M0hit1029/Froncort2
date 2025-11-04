@@ -6,7 +6,7 @@ import Collaboration from '@tiptap/extension-collaboration';
 // import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { subscribeToProject, emitProjectEvent } from '@/lib/realtime';
 
 interface DocumentEditorProps {
@@ -20,21 +20,24 @@ export default function DocumentEditor({ projectId, docId, userName = 'Anonymous
   const yDocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<WebrtcProvider | null>(null);
   
-  // Initialize Y.js document only once
-  if (!yDocRef.current) {
-    yDocRef.current = new Y.Doc();
-  }
-  const yDoc = yDocRef.current;
-  
   // Throttle for document update events
   const lastEmitTime = useRef<number>(0);
 
-  // Create WebRTC provider with room name only once
+  // Initialize Y.js document and provider only once using useMemo
+  const yDoc = useMemo(() => {
+    if (!yDocRef.current) {
+      yDocRef.current = new Y.Doc();
+    }
+    return yDocRef.current;
+  }, []);
+
   const roomName = `project-${projectId}-doc-${docId}`;
-  if (!providerRef.current) {
-    providerRef.current = new WebrtcProvider(roomName, yDoc);
-  }
-  const provider = providerRef.current;
+  const provider = useMemo(() => {
+    if (!providerRef.current) {
+      providerRef.current = new WebrtcProvider(roomName, yDoc);
+    }
+    return providerRef.current;
+  }, [roomName, yDoc]);
 
   // Optional realtime event bridge for document updates
   useEffect(() => {
