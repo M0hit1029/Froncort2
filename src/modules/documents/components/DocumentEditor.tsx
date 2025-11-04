@@ -18,6 +18,9 @@ export default function DocumentEditor({ projectId, docId, userName = 'Anonymous
   // Create Y.js document
   const yDoc = useMemo(() => new Y.Doc(), []);
 
+  // Generate a consistent color for the user
+  const userColor = useMemo(() => getRandomColor(), []);
+
   // Create WebRTC provider with room name
   const roomName = `project-${projectId}-doc-${docId}`;
   const provider = useMemo(() => new WebrtcProvider(roomName, yDoc), [roomName, yDoc]);
@@ -40,7 +43,7 @@ export default function DocumentEditor({ projectId, docId, userName = 'Anonymous
         provider: provider,
         user: {
           name: userName,
-          color: getRandomColor(),
+          color: userColor,
         },
       }),
     ],
@@ -49,7 +52,7 @@ export default function DocumentEditor({ projectId, docId, userName = 'Anonymous
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[500px] p-4',
       },
     },
-  }, [yDoc, provider]);
+  }, [yDoc, provider, userName, userColor]);
 
   if (!editor) {
     return (
