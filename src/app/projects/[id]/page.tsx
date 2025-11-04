@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { ProjectHeader } from '@/components/ProjectHeader';
 import KanbanView from '@/modules/kanban/KanbanView';
@@ -12,9 +12,14 @@ type Tab = 'kanban' | 'documents' | 'activity';
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [activeTab, setActiveTab] = useState<Tab>('kanban');
-  const { projects } = useProjectStore();
+  const { projects, setSelectedProject } = useProjectStore();
   
   const project = projects.find(p => p.id === resolvedParams.id);
+  
+  // Set the selected project when the component mounts or project ID changes
+  useEffect(() => {
+    setSelectedProject(resolvedParams.id);
+  }, [resolvedParams.id, setSelectedProject]);
 
   if (!project) {
     return (
