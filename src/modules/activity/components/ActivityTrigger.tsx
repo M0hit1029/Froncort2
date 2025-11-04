@@ -25,6 +25,7 @@ export default function ActivityTrigger({ projectId }: ActivityTriggerProps) {
   const project = projects.find(p => p.id === projectId);
 
   const triggerProjectShare = () => {
+    if (users.length < 2) return;
     const sharerUser = users[0]; // Alice
     const targetUser = users[1]; // Bob
     
@@ -52,6 +53,7 @@ export default function ActivityTrigger({ projectId }: ActivityTriggerProps) {
   };
 
   const triggerDocumentEdit = () => {
+    if (users.length < 2) return;
     const editorUser = users[1]; // Bob
     const projectDocs = documents.filter(d => d.projectId === projectId);
     const doc = projectDocs[0] || { id: 'demo-doc', title: 'Sample Document' };
@@ -76,6 +78,7 @@ export default function ActivityTrigger({ projectId }: ActivityTriggerProps) {
   };
 
   const triggerTaskMove = () => {
+    if (users.length < 3) return;
     const moverUser = users[2]; // Charlie
     const projectTasks = tasks.filter(t => t.projectId === projectId);
     const task = projectTasks[0] || { id: 'demo-task', title: 'Fix Bug' };

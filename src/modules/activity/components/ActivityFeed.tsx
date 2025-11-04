@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useActivityStore, ActivityEvent } from '@/store/activityStore';
 import { subscribeToProject, RealtimeEvent } from '@/lib/realtime';
@@ -25,7 +25,7 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
     (activity) => activity.data.projectId === projectId
   );
 
-  const handleRealtimeEvent = (event: RealtimeEvent) => {
+  const handleRealtimeEvent = useCallback((event: RealtimeEvent) => {
     const user = users.find((u) => u.id === event.userId);
     const userName = user?.name || 'Unknown User';
 
@@ -84,17 +84,13 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
         break;
       }
     }
-  };
+  }, [users, documents, tasks, boards, projects, projectId, addActivity]);
 
   // Subscribe to realtime events
   useEffect(() => {
-    const unsubscribe = subscribeToProject(projectId, (event: RealtimeEvent) => {
-      handleRealtimeEvent(event);
-    });
-
+    const unsubscribe = subscribeToProject(projectId, handleRealtimeEvent);
     return unsubscribe;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, handleRealtimeEvent]);
 
   const formatActivityMessage = (activity: ActivityEvent): string => {
     switch (activity.type) {
@@ -124,7 +120,7 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
     }
   };
 
-  const formatTimestamp = (timestamp: number): string => {
+  const formatTimestamp = useCallback((timestamp: number): string => {
     const now = Date.now();
     const diff = now - timestamp;
     
@@ -139,7 +135,7 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
     } else {
       return new Date(timestamp).toLocaleString();
     }
-  };
+  }, []);
 
   return (
     <div className="w-full">
