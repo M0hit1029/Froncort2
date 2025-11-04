@@ -33,8 +33,11 @@ export function ProjectShareModal({ projectId }: ProjectShareModalProps) {
   const { addShare } = useProjectStore()
 
   const handleShare = () => {
-    if (emailOrUsername.trim()) {
-      addShare(projectId, emailOrUsername, role)
+    const trimmedInput = emailOrUsername.trim()
+    if (trimmedInput) {
+      // Basic sanitization - remove any HTML tags or special characters that could be problematic
+      const sanitizedInput = trimmedInput.replace(/[<>]/g, '')
+      addShare(projectId, sanitizedInput, role)
       // Reset form
       setEmailOrUsername("")
       setRole("viewer")
