@@ -2,6 +2,7 @@
 
 import { useState, use } from 'react';
 import { useProjectStore } from '@/store/projectStore';
+import { ProjectHeader } from '@/components/ProjectHeader';
 import KanbanView from '@/modules/kanban/KanbanView';
 import DocumentsView from '@/modules/documents/DocumentsView';
 import ActivityFeedView from '@/modules/activity/ActivityFeedView';
@@ -31,11 +32,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="flex-1">
+      <ProjectHeader 
+        projectId={project.id}
+        projectName={project.name}
+        projectDescription={project.description}
+      />
       <div className="bg-white border-b">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-          <p className="text-gray-600 mt-1">{project.description}</p>
-        </div>
         <div className="flex gap-4 px-6">
           {tabs.map((tab) => (
             <button
