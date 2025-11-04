@@ -3,10 +3,10 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+// import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { subscribeToProject, emitProjectEvent } from '@/lib/realtime';
 
 interface DocumentEditorProps {
@@ -16,18 +16,28 @@ interface DocumentEditorProps {
 }
 
 export default function DocumentEditor({ projectId, docId, userName = 'Anonymous' }: DocumentEditorProps) {
-  // Create Y.js document
-  const yDoc = useMemo(() => new Y.Doc(), []);
-
-  // Generate a consistent color for the user
-  const userColor = useMemo(() => getRandomColor(), []);
+  // Refs to store Y.js doc and provider to prevent recreation
+  const yDocRef = useRef<Y.Doc | null>(null);
+  const providerRef = useRef<WebrtcProvider | null>(null);
   
   // Throttle for document update events
   const lastEmitTime = useRef<number>(0);
 
-  // Create WebRTC provider with room name
+  // Initialize Y.js document and provider only once using useMemo
+  const yDoc = useMemo(() => {
+    if (!yDocRef.current) {
+      yDocRef.current = new Y.Doc();
+    }
+    return yDocRef.current;
+  }, []);
+
   const roomName = `project-${projectId}-doc-${docId}`;
-  const provider = useMemo(() => new WebrtcProvider(roomName, yDoc), [roomName, yDoc]);
+  const provider = useMemo(() => {
+    if (!providerRef.current) {
+      providerRef.current = new WebrtcProvider(roomName, yDoc);
+    }
+    return providerRef.current;
+  }, [roomName, yDoc]);
 
   // Optional realtime event bridge for document updates
   useEffect(() => {
@@ -47,24 +57,34 @@ export default function DocumentEditor({ projectId, docId, userName = 'Anonymous
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      provider.destroy();
-      yDoc.destroy();
+      if (providerRef.current) {
+        providerRef.current.destroy();
+        providerRef.current = null;
+      }
+      if (yDocRef.current) {
+        yDocRef.current.destroy();
+        yDocRef.current = null;
+      }
     };
-  }, [provider, yDoc]);
+  }, []);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Collaboration.configure({
         document: yDoc,
       }),
-      CollaborationCursor.configure({
-        provider: provider,
-        user: {
-          name: userName,
-          color: userColor,
-        },
-      }),
+      // Note: CollaborationCursor v3.0.0 has compatibility issues with the current setup
+      // The basic collaboration still works via Yjs and WebRTC
+      // TODO: Investigate proper v3 CollaborationCursor configuration
+      // CollaborationCursor.configure({
+      //   provider: provider,
+      //   user: {
+      //     name: userName,
+      //     color: userColor,
+      //   },
+      // }),
     ],
     editorProps: {
       attributes: {
@@ -84,7 +104,7 @@ export default function DocumentEditor({ projectId, docId, userName = 'Anonymous
         });
       }
     },
-  }, [yDoc, provider, userName, userColor, projectId, docId]);
+  }, [yDoc, provider, userName, projectId, docId]);
 
   if (!editor) {
     return (
@@ -170,18 +190,4 @@ export default function DocumentEditor({ projectId, docId, userName = 'Anonymous
       </div>
     </div>
   );
-}
-
-// Helper function to generate random colors for user cursors
-function getRandomColor() {
-  const colors = [
-    '#958DF1',
-    '#F98181',
-    '#FBBC88',
-    '#FAF594',
-    '#70CFF8',
-    '#94FADB',
-    '#B9F18D',
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
 }
