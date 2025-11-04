@@ -1,10 +1,18 @@
+'use client';
+
+import { useProjectStore } from '@/store/projectStore';
+import KanbanBoard from './KanbanBoard';
+
 export default function KanbanView() {
-  return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Kanban Board</h2>
-      <div className="bg-gray-50 rounded-lg p-8 text-center">
-        <p className="text-gray-600">Kanban board view will be implemented here</p>
+  const { selectedProjectId } = useProjectStore();
+  
+  if (!selectedProjectId) {
+    return (
+      <div className="p-6">
+        <p className="text-gray-600">No project selected</p>
       </div>
-    </div>
-  );
+    );
+  }
+  
+  return <KanbanBoard projectId={selectedProjectId} />;
 }
