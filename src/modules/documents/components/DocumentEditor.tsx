@@ -100,7 +100,8 @@ export default function DocumentEditor({
     };
   }, [provider]);
 
-  // Cleanup yDoc on unmount only
+  // Cleanup yDoc on unmount only (not when provider changes)
+  // yDoc is intentionally not in deps because it should only be destroyed once
   useEffect(() => {
     return () => {
       yDoc.destroy();
