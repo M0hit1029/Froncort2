@@ -37,7 +37,8 @@ export default function DocumentEditor({
 
   const roomName = `project-${projectId}-doc-${docId}`;
   
-  // Initialize WebRTC provider only once using useMemo (no refs)
+  // Initialize WebRTC provider - memoized to prevent recreation
+  // Note: roomName includes projectId and docId, so provider changes if document changes
   const provider = useMemo(() => {
     const newProvider = new WebrtcProvider(roomName, yDoc, {
       signaling: ["ws://localhost:4444"],
@@ -92,13 +93,20 @@ export default function DocumentEditor({
     return unsubscribe;
   }, [projectId, docId]);
 
-  // Cleanup on unmount
+  // Cleanup when provider or yDoc changes (handles memory leaks if props change)
   useEffect(() => {
     return () => {
       provider.destroy();
+    };
+  }, [provider]);
+
+  // Cleanup yDoc on unmount only
+  useEffect(() => {
+    return () => {
       yDoc.destroy();
     };
-  }, [provider, yDoc]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const editor = useEditor(
   {
