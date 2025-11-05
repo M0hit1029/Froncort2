@@ -33,7 +33,7 @@ body {
 .tiptap {
   color: #00ff00;
   padding: 1rem;
-  min-height: 400px;
+  min-height: 200px;
   
   :first-child {
     margin-top: 0;

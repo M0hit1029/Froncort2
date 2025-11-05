@@ -4,13 +4,11 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Collaboration from "@tiptap/extension-collaboration";
 import * as Y from "yjs";
-import { WebrtcProvider } from "y-webrtc";
 import { useEffect, useRef } from "react";
 import { subscribeToProject, emitProjectEvent } from "@/lib/realtime";
 import { useProjectStore } from "@/store/projectStore";
 import { useUserStore } from "@/store/userStore";
 import { canEdit } from "@/lib/permissions";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 
@@ -30,12 +28,14 @@ interface DocumentEditorProps {
   projectId: string;
   docId: string;
   userName?: string;
+  documentTitle?: string;
 }
 
 export default function DocumentEditor({
   projectId,
   docId,
   userName = "Anonymous",
+  documentTitle = "Untitled Document",
 }: DocumentEditorProps) {
   const { getUserRoleForProject } = useProjectStore();
   const { currentUser } = useUserStore();
@@ -167,7 +167,7 @@ providerRef.current = new HocuspocusProvider({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[500px] p-4",
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4",
       },
     },
     onUpdate: () => {
@@ -176,10 +176,11 @@ providerRef.current = new HocuspocusProvider({
       if (now - lastEmitTime.current > 5000) {
         lastEmitTime.current = now;
         emitProjectEvent(projectId, "document:update", {
-          docId,
+          documentId: docId,
+          documentTitle,
           userName,
           timestamp: now,
-        });
+        }, currentUser.id);
       }
     },
   },
@@ -306,7 +307,7 @@ providerRef.current = new HocuspocusProvider({
           </div>
         </div>
       </div>
-      <div className="border border-[#00ff00]/20 rounded-lg bg-black">
+      <div className="border border-[#00ff00]/20 rounded-lg bg-black min-h-[300px]">
         <EditorContent editor={editor} />
       </div>
     </div>

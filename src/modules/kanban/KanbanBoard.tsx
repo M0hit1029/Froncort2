@@ -111,17 +111,28 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     const taskId = active.id as string;
     const overId = over.id as string;
     
+    // Find the task being moved
+    const task = activeTask;
+    if (!task) {
+      setActiveTask(null);
+      return;
+    }
+    
+    const fromBoard = boards.find((b) => b.id === task.boardId);
+    
     // Check if dropped over a board or a task
     const targetBoard = boards.find((b) => b.id === overId);
     
     let targetBoardId: string | undefined;
     let targetPosition: number | undefined;
+    let toBoard: Board | undefined;
     
     if (targetBoard) {
       // Dropped directly on a board (empty space)
       const tasksInBoard = getTasksByBoard(targetBoard.id);
       targetBoardId = targetBoard.id;
       targetPosition = tasksInBoard.length;
+      toBoard = targetBoard;
       moveTask(taskId, targetBoardId, targetPosition);
     } else {
       // Dropped on another task - find which board it belongs to
@@ -132,19 +143,23 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
         if (targetTaskIndex !== -1) {
           targetBoardId = board.id;
           targetPosition = targetTaskIndex;
+          toBoard = board;
           moveTask(taskId, targetBoardId, targetPosition);
           break;
         }
       }
     }
     
-    // Emit realtime event for card move
-    if (targetBoardId && targetPosition !== undefined) {
+    // Emit realtime event for card move with complete information
+    if (targetBoardId && targetPosition !== undefined && toBoard && fromBoard) {
       emitProjectEvent(projectId, 'kanban:card:move', {
         taskId,
+        taskTitle: task.title,
         boardId: targetBoardId,
         position: targetPosition,
-      });
+        fromBoardId: fromBoard.id,
+        toBoardId: toBoard.id,
+      }, currentUser.id);
     }
     
     setActiveTask(null);
@@ -163,7 +178,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     addBoard(newBoard);
     
     // Emit realtime event for board add
-    emitProjectEvent(projectId, 'kanban:board:add', newBoard);
+    emitProjectEvent(projectId, 'kanban:board:add', newBoard, currentUser.id);
   };
   
   const handleAddTask = (boardId: string, title: string, description?: string) => {
@@ -182,7 +197,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     addTask(newTask);
     
     // Emit realtime event for card add
-    emitProjectEvent(projectId, 'kanban:card:add', newTask);
+    emitProjectEvent(projectId, 'kanban:card:add', newTask, currentUser.id);
   };
   
   if (!userRole) {

@@ -138,6 +138,7 @@ export default function DocumentsView() {
               projectId={selectedProjectId}
               docId={selectedDoc.id}
               userName={currentUser.name}
+              documentTitle={selectedDoc.title}
             />
           </div>
         ) : (

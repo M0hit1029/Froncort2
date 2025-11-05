@@ -67,14 +67,16 @@ class RealtimeService {
    * @param projectId The project ID
    * @param eventType Type of the event
    * @param payload Event payload data
+   * @param userId Optional user ID who triggered the event
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  emitProjectEvent(projectId: string, eventType: EventType, payload: any): void {
+  emitProjectEvent(projectId: string, eventType: EventType, payload: any, userId?: string): void {
     const event: RealtimeEvent = {
       projectId,
       eventType,
       payload,
       timestamp: Date.now(),
+      userId,
     };
 
     if (this.isSupabaseAvailable) {
