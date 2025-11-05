@@ -93,18 +93,18 @@ providerRef.current = new HocuspocusProvider({
     const logPeers = () => {
       console.log(
         "Awareness states:",
-        Array.from(provider.awareness.getStates().values())
+        Array.from(provider.awareness?.getStates().values() || [])
       );
     };
 
     provider.on("status", logStatus);
     provider.on("synced", logSynced);
-    provider.awareness.on("change", logPeers);
+    provider.awareness?.on("change", logPeers);
 
     return () => {
       provider.off("status", logStatus);
       provider.off("synced", logSynced);
-      provider.awareness.off("change", logPeers);
+      provider.awareness?.off("change", logPeers);
     };
   }, [provider]);
 
@@ -299,17 +299,10 @@ providerRef.current = new HocuspocusProvider({
             </button>
           </div>
           <div className="text-sm text-gray-600">
-            {provider?.connected ? (
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                Connected ({provider.awareness.getStates().size} online)
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                Connecting...
-              </span>
-            )}
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              Collaborative ({provider?.awareness?.getStates().size || 0} online)
+            </span>
           </div>
         </div>
       </div>
