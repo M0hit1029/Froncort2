@@ -4,7 +4,6 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Collaboration from "@tiptap/extension-collaboration";
 import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
-// import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import * as Y from "yjs";
 import { WebrtcProvider } from "y-webrtc";
 import { useEffect, useRef, useMemo } from "react";
@@ -30,40 +29,31 @@ export default function DocumentEditor({
   const userRole = getUserRoleForProject(projectId, currentUser.id);
   const isEditable = canEdit(userRole);
 
-  // Refs to store Y.js doc and provider to prevent recreation
-  const yDocRef = useRef<Y.Doc | null>(null);
-  const providerRef = useRef<WebrtcProvider | null>(null);
-
   // Throttle for document update events
   const lastEmitTime = useRef<number>(0);
 
-  // Initialize Y.js document and provider only once using useMemo
-  const yDoc = useMemo(() => {
-    if (!yDocRef.current) {
-      yDocRef.current = new Y.Doc();
-    }
-    return yDocRef.current;
-  }, []);
+  // Initialize Y.js document only once using useMemo (no refs)
+  const yDoc = useMemo(() => new Y.Doc(), []);
 
   const roomName = `project-${projectId}-doc-${docId}`;
+  
+  // Initialize WebRTC provider only once using useMemo (no refs)
   const provider = useMemo(() => {
-    if (!providerRef.current) {
-      providerRef.current = new WebrtcProvider(roomName, yDoc, {
-        signaling: ["ws://localhost:4444"],
-      });
-      console.log(providerRef.current);
-    }
-    return providerRef.current;
+    const newProvider = new WebrtcProvider(roomName, yDoc, {
+      signaling: ["ws://localhost:4444"],
+    });
+    console.log(newProvider);
+    return newProvider;
   }, [roomName, yDoc]);
 
   useEffect(() => {
     if (!provider) return;
 
-    const logStatus = (status: string) => {
+    const logStatus = (status: { connected: boolean }) => {
       console.log("WebRTC provider status:", status);
     };
-    const logSynced = (isSynced: boolean) => {
-      console.log("Synced with peers:", isSynced);
+    const logSynced = (event: { synced: boolean }) => {
+      console.log("Synced with peers:", event.synced);
     };
 
     const logPeers = () => {
@@ -105,34 +95,27 @@ export default function DocumentEditor({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (providerRef.current) {
-        providerRef.current.destroy();
-        providerRef.current = null;
-      }
-      if (yDocRef.current) {
-        yDocRef.current.destroy();
-        yDocRef.current = null;
-      }
+      provider.destroy();
+      yDoc.destroy();
     };
-  }, []);
+  }, [provider, yDoc]);
 
   const editor = useEditor(
   {
     immediatelyRender: false,
     editable: isEditable,
     extensions: [
-        StarterKit.configure({
-    history: false, // disable normal undo/redo (conflicts with collaboration)
-  }),
+      StarterKit.configure({
+        undoRedo: false, // disable normal undo/redo (conflicts with collaboration)
+      }),
       Collaboration.configure({
-  document: yDoc,
-    field: 'content',
-}),
-      // If you later add cursors:
-      // CollaborationCursor.configure({
-      //   provider: provider,
-      //   user: { name: userName, color: "#007bff" },
-      // }),
+        document: yDoc,
+        field: 'content',
+      }),
+      CollaborationCursor.configure({
+        provider: provider,
+        user: { name: userName, color: "#007bff" },
+      }),
     ],
     editorProps: {
       attributes: {
@@ -156,7 +139,14 @@ export default function DocumentEditor({
   [yDoc, provider, userName, projectId, docId, isEditable]
 );
 
-  // 🧩 Wait until provider is initialized properly
+  // Update editor editability dynamically without recreating the editor
+  useEffect(() => {
+    if (editor && editor.isEditable !== isEditable) {
+      editor.setEditable(isEditable);
+    }
+  }, [editor, isEditable]);
+
+  // Wait until provider is initialized properly
   if (!provider || !provider.doc) {
     console.log("Waiting for provider to be ready...");
     return (
@@ -165,14 +155,6 @@ export default function DocumentEditor({
       </div>
     );
   }
-
-
-  // Update editor editability dynamically without recreating the editor
-  useEffect(() => {
-    if (editor && editor.isEditable !== isEditable) {
-      editor.setEditable(isEditable);
-    }
-  }, [editor, isEditable]);
 
   if (!editor) {
     return (
