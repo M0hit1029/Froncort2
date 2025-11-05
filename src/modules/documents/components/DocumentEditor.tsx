@@ -31,27 +31,35 @@ export default function DocumentEditor({
   // Throttle for document update events
   const lastEmitTime = useRef<number>(0);
 
-  const roomName = `project-${projectId}-doc-${docId}`;
-  
-  // Initialize Y.js document only once using useRef to survive React Strict Mode
+  // Track the current room name for provider lifecycle
+  const currentRoomName = `project-${projectId}-doc-${docId}`;
+  const roomNameRef = useRef<string>(currentRoomName);
+
+  // Initialize Y.js document and provider using refs to survive React Strict Mode
+  // These are initialized lazily on first access to ensure they're available immediately
   const yDocRef = useRef<Y.Doc | null>(null);
+  const providerRef = useRef<WebrtcProvider | null>(null);
+
+  // Lazy initialization of yDoc
   if (!yDocRef.current) {
     yDocRef.current = new Y.Doc();
   }
-  const yDoc = yDocRef.current;
 
-  // Initialize WebRTC provider using useRef to survive React Strict Mode  
-  const providerRef = useRef<WebrtcProvider | null>(null);
-  if (!providerRef.current || providerRef.current.roomName !== roomName) {
+  // Lazy initialization or recreation of provider when room changes
+  if (!providerRef.current || roomNameRef.current !== currentRoomName) {
     // Clean up old provider if room name changed
-    if (providerRef.current) {
+    if (providerRef.current && roomNameRef.current !== currentRoomName) {
       providerRef.current.destroy();
     }
-    providerRef.current = new WebrtcProvider(roomName, yDoc, {
+    
+    roomNameRef.current = currentRoomName;
+    providerRef.current = new WebrtcProvider(currentRoomName, yDocRef.current, {
       signaling: ["ws://localhost:4444"],
     });
     console.log(providerRef.current);
   }
+
+  const yDoc = yDocRef.current;
   const provider = providerRef.current;
 
   useEffect(() => {
