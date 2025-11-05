@@ -3,10 +3,9 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
 import * as Y from "yjs";
 import { WebrtcProvider } from "y-webrtc";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef } from "react";
 import { subscribeToProject, emitProjectEvent } from "@/lib/realtime";
 import { useProjectStore } from "@/store/projectStore";
 import { useUserStore } from "@/store/userStore";
@@ -32,20 +31,28 @@ export default function DocumentEditor({
   // Throttle for document update events
   const lastEmitTime = useRef<number>(0);
 
-  // Initialize Y.js document only once using useMemo (no refs)
-  const yDoc = useMemo(() => new Y.Doc(), []);
-
   const roomName = `project-${projectId}-doc-${docId}`;
   
-  // Initialize WebRTC provider - memoized to prevent recreation
-  // Note: roomName includes projectId and docId, so provider changes if document changes
-  const provider = useMemo(() => {
-    const newProvider = new WebrtcProvider(roomName, yDoc, {
+  // Initialize Y.js document only once using useRef to survive React Strict Mode
+  const yDocRef = useRef<Y.Doc | null>(null);
+  if (!yDocRef.current) {
+    yDocRef.current = new Y.Doc();
+  }
+  const yDoc = yDocRef.current;
+
+  // Initialize WebRTC provider using useRef to survive React Strict Mode  
+  const providerRef = useRef<WebrtcProvider | null>(null);
+  if (!providerRef.current || providerRef.current.roomName !== roomName) {
+    // Clean up old provider if room name changed
+    if (providerRef.current) {
+      providerRef.current.destroy();
+    }
+    providerRef.current = new WebrtcProvider(roomName, yDoc, {
       signaling: ["ws://localhost:4444"],
     });
-    console.log(newProvider);
-    return newProvider;
-  }, [roomName, yDoc]);
+    console.log(providerRef.current);
+  }
+  const provider = providerRef.current;
 
   useEffect(() => {
     if (!provider) return;
@@ -93,18 +100,17 @@ export default function DocumentEditor({
     return unsubscribe;
   }, [projectId, docId]);
 
-  // Cleanup when provider or yDoc changes (handles memory leaks if props change)
+  // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      provider.destroy();
-    };
-  }, [provider]);
-
-  // Cleanup yDoc on unmount only (not when provider changes)
-  // yDoc is intentionally not in deps because it should only be destroyed once
-  useEffect(() => {
-    return () => {
-      yDoc.destroy();
+      if (providerRef.current) {
+        providerRef.current.destroy();
+        providerRef.current = null;
+      }
+      if (yDocRef.current) {
+        yDocRef.current.destroy();
+        yDocRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -121,13 +127,9 @@ export default function DocumentEditor({
         document: yDoc,
         field: 'content',
       }),
-      // Only add CollaborationCursor when provider is ready and has awareness
-      ...(provider && provider.awareness ? [
-        CollaborationCursor.configure({
-          provider: provider,
-          user: { name: userName, color: "#007bff" },
-        }),
-      ] : []),
+      // CollaborationCursor removed due to initialization timing issues
+      // The cursor plugin tries to access Collaboration's ystate before it's fully initialized
+      // Collaboration still works without showing other users' cursors
     ],
     editorProps: {
       attributes: {
