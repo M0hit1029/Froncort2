@@ -121,10 +121,13 @@ export default function DocumentEditor({
         document: yDoc,
         field: 'content',
       }),
-      CollaborationCursor.configure({
-        provider: provider,
-        user: { name: userName, color: "#007bff" },
-      }),
+      // Only add CollaborationCursor when provider is ready and has awareness
+      ...(provider && provider.awareness ? [
+        CollaborationCursor.configure({
+          provider: provider,
+          user: { name: userName, color: "#007bff" },
+        }),
+      ] : []),
     ],
     editorProps: {
       attributes: {
