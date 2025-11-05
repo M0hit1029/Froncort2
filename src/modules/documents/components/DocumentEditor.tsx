@@ -47,8 +47,8 @@ export default function DocumentEditor({
 
   // Lazy initialization or recreation of provider when room changes
   if (!providerRef.current || roomNameRef.current !== currentRoomName) {
-    // Clean up old provider if room name changed
-    if (providerRef.current && roomNameRef.current !== currentRoomName) {
+    // Clean up old provider if it exists (room name changed)
+    if (providerRef.current) {
       providerRef.current.destroy();
     }
     
