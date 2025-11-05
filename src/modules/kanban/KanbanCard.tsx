@@ -32,13 +32,13 @@ export function KanbanCard({ task, isDragging, canDrag = true }: KanbanCardProps
       style={style}
       {...(canDrag ? attributes : {})}
       {...(canDrag ? listeners : {})}
-      className={`bg-white rounded-lg p-3 shadow-sm border border-gray-200 ${
+      className={`bg-black rounded-lg p-3 border border-[#00ff00]/40 ${
         canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
-      } ${isDragging ? 'shadow-lg' : 'hover:shadow-md'} transition-shadow`}
+      } ${isDragging ? 'shadow-lg shadow-[#00ff00]/20' : 'hover:border-[#00ff00]/60 hover:shadow-md hover:shadow-[#00ff00]/10'} transition-all`}
     >
-      <h4 className="font-medium text-sm mb-1">{task.title}</h4>
+      <h4 className="font-medium text-sm mb-1 text-[#00ff00]">{task.title}</h4>
       {task.description && (
-        <p className="text-xs text-gray-600 line-clamp-2">{task.description}</p>
+        <p className="text-xs text-[#00ff00]/70 line-clamp-2">{task.description}</p>
       )}
     </div>
   );

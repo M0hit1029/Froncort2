@@ -21,15 +21,15 @@ export function ProjectHeader({ projectId, projectName, projectDescription }: Pr
   const getRoleBadgeStyle = (role: string | null) => {
     switch (role) {
       case 'owner':
-        return 'bg-purple-100 text-purple-800 border-purple-200'
+        return 'bg-[#004000] text-[#00ff00] border-[#00ff00]/50'
       case 'admin':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
+        return 'bg-[#003000] text-[#00ff00] border-[#00ff00]/40'
       case 'editor':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-[#002000] text-[#00ff00] border-[#00ff00]/30'
       case 'viewer':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-black text-[#00ff00]/70 border-[#00ff00]/20'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-black text-[#00ff00]/70 border-[#00ff00]/20'
     }
   }
   
@@ -39,18 +39,18 @@ export function ProjectHeader({ projectId, projectName, projectDescription }: Pr
   }
 
   return (
-    <div className="bg-white border-b">
+    <div className="bg-black border-b border-[#00ff00]/20">
       <div className="px-6 py-4 flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-gray-900">{projectName}</h1>
+            <h1 className="text-2xl font-bold text-[#00ff00]">{projectName}</h1>
             {userRole && (
               <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${getRoleBadgeStyle(userRole)}`}>
                 Role: {getRoleLabel(userRole)}
               </span>
             )}
           </div>
-          <p className="text-gray-600 mt-1">{projectDescription}</p>
+          <p className="text-[#00ff00]/70 mt-1">{projectDescription}</p>
         </div>
         {canShare && (
           <div className="ml-4">

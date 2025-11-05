@@ -188,7 +188,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
   if (!userRole) {
     return (
       <div className="p-6">
-        <p className="text-red-600">You don&apos;t have access to this project</p>
+        <p className="text-[#00ff00]">You don&apos;t have access to this project</p>
       </div>
     );
   }
@@ -196,8 +196,8 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
   return (
     <div className="p-6">
       <div className="mb-4 flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Kanban Board</h2>
-        <div className="text-sm text-gray-600">
+        <h2 className="text-2xl font-bold text-[#00ff00]">Kanban Board</h2>
+        <div className="text-sm text-[#00ff00]/70">
           Role: <span className="font-semibold capitalize">{userRole}</span>
           {!canEditKanban && ' (Read-only)'}
         </div>

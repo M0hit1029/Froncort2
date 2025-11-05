@@ -42,7 +42,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         projectName={project.name}
         projectDescription={project.description}
       />
-      <div className="bg-white border-b">
+      <div className="bg-black border-b border-[#00ff00]/20">
         <div className="flex gap-4 px-6">
           {tabs.map((tab) => (
             <button
@@ -50,8 +50,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-[#00ff00] text-[#00ff00]'
+                  : 'border-transparent text-[#00ff00]/60 hover:text-[#00ff00]'
               }`}
             >
               {tab.label}
@@ -60,7 +60,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         </div>
       </div>
 
-      <div className="bg-gray-50 min-h-screen">
+      <div className="bg-black min-h-screen">
         {activeTab === 'kanban' && <KanbanView />}
         {activeTab === 'documents' && <DocumentsView />}
         {activeTab === 'activity' && <ActivityFeedView projectId={project.id} />}

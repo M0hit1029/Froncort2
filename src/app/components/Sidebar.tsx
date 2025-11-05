@@ -21,14 +21,14 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-gray-800 text-white min-h-screen p-6 flex flex-col">
-      <h1 className="text-2xl font-bold mb-8">Froncort</h1>
+    <aside className="w-64 bg-black text-[#00ff00] min-h-screen p-6 flex flex-col border-r border-[#00ff00]/20">
+      <h1 className="text-2xl font-bold mb-8 text-[#00ff00]">Froncort</h1>
       
       {/* User Dropdown */}
       <div className="mb-6 relative">
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-full flex items-center justify-between px-3 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
+          className="w-full flex items-center justify-between px-3 py-2 bg-black border border-[#00ff00]/30 rounded-lg hover:bg-[#004000] transition-colors"
         >
           <div className="flex items-center gap-2">
             <User className="w-4 h-4" />
@@ -38,13 +38,13 @@ export default function Sidebar() {
         </button>
         
         {dropdownOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-700 rounded-lg shadow-lg z-10 overflow-hidden">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-black border border-[#00ff00]/30 rounded-lg shadow-lg z-10 overflow-hidden">
             {users.map((user) => (
               <button
                 key={user.id}
                 onClick={() => handleUserChange(user.id)}
-                className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-600 transition-colors ${
-                  currentUser.id === user.id ? 'bg-gray-600 font-medium' : ''
+                className={`w-full px-3 py-2 text-left text-sm hover:bg-[#004000] transition-colors ${
+                  currentUser.id === user.id ? 'bg-[#004000] font-medium' : ''
                 }`}
               >
                 {user.name}
@@ -55,7 +55,7 @@ export default function Sidebar() {
       </div>
       
       <nav className="flex-1">
-        <h2 className="text-sm font-semibold text-gray-400 mb-3">PROJECTS</h2>
+        <h2 className="text-sm font-semibold text-[#00ff00]/70 mb-3">PROJECTS</h2>
         <ul className="space-y-2">
           {visibleProjects.map((project) => (
             <li key={project.id}>
@@ -63,8 +63,8 @@ export default function Sidebar() {
                 href={`/projects/${project.id}`}
                 className={`block px-3 py-2 rounded-lg transition-colors ${
                   pathname.includes(`/projects/${project.id}`)
-                    ? 'bg-gray-700 text-white'
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ? 'bg-[#004000] text-[#00ff00] border border-[#00ff00]/30'
+                    : 'text-[#00ff00]/80 hover:bg-[#004000] hover:text-[#00ff00]'
                 }`}
               >
                 {project.name}

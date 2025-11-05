@@ -26,13 +26,13 @@ export function AddBoardButton({ onAddBoard }: AddBoardButtonProps) {
   
   if (isAdding) {
     return (
-      <div className="flex-shrink-0 w-80 bg-gray-100 rounded-lg p-4">
+      <div className="flex-shrink-0 w-80 bg-black border border-[#00ff00]/30 rounded-lg p-4">
         <input
           type="text"
           placeholder="Board title"
           value={boardTitle}
           onChange={(e) => setBoardTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+          className="w-full px-3 py-2 bg-black border border-[#00ff00]/30 text-[#00ff00] rounded focus:outline-none focus:ring-2 focus:ring-[#00ff00] mb-2 placeholder-[#00ff00]/50"
           autoFocus
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -45,13 +45,13 @@ export function AddBoardButton({ onAddBoard }: AddBoardButtonProps) {
         <div className="flex gap-2">
           <button
             onClick={handleAdd}
-            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+            className="px-3 py-1 bg-[#004000] text-[#00ff00] border border-[#00ff00]/50 rounded hover:bg-[#006000] text-sm"
           >
             Add Board
           </button>
           <button
             onClick={handleCancel}
-            className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+            className="px-3 py-1 bg-black text-[#00ff00]/70 border border-[#00ff00]/30 rounded hover:bg-[#002000] text-sm"
           >
             Cancel
           </button>
@@ -63,7 +63,7 @@ export function AddBoardButton({ onAddBoard }: AddBoardButtonProps) {
   return (
     <button
       onClick={() => setIsAdding(true)}
-      className="flex-shrink-0 w-80 bg-gray-50 hover:bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-4 flex items-center justify-center gap-2 text-gray-600 transition-colors"
+      className="flex-shrink-0 w-80 bg-black hover:bg-[#002000] border-2 border-dashed border-[#00ff00]/30 rounded-lg p-4 flex items-center justify-center gap-2 text-[#00ff00]/70 transition-colors"
     >
       <Plus className="w-5 h-5" />
       <span className="font-medium">Add Board</span>
