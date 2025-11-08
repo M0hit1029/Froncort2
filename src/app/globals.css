@@ -5,7 +5,7 @@
   --foreground: #00ff00;
   --matrix-green: #00ff00;
   --matrix-dark-green: #008000;
-  --matrix-darker-green: #004000;
+  --matrix-darker-green: #003300;
 }
 
 @theme inline {
@@ -29,17 +29,101 @@ body {
   font-family: 'Share Tech Mono', monospace;
 }
 
-/* Basic editor styles */
+/* ========================================================= */
+/*                       TIPTAP EDITOR                       */
+/* ========================================================= */
 .tiptap {
   color: #00ff00;
   padding: 1rem;
   min-height: 200px;
-  
+
   :first-child {
     margin-top: 0;
   }
 
-  /* Placeholder (at the top) */
+  /* ========================= */
+  /*       Code Blocks         */
+  /* ========================= */
+  pre {
+    background-color: var(--matrix-darker-green);
+    border-radius: 0.5rem;
+    color: var(--matrix-green);
+    font-family: 'JetBrainsMono', monospace;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+    margin: 0.75rem 0;
+    overflow-x: auto;
+    white-space: pre; /* prevents flickering */
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.15);
+    line-height: 1.4;
+    transition: box-shadow 0.2s ease-in-out;
+    min-height: 1.6em; /* one-line height */
+  }
+
+  pre:hover {
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.25);
+  }
+
+  pre code {
+    display: block;
+    background: none;
+    color: var(--matrix-green);
+    font-family: 'JetBrainsMono', monospace;
+    font-size: 0.85rem;
+    padding: 0;
+    margin: 0;
+    white-space: pre;
+    min-height: 1.4em;
+  }
+
+  pre:empty::before {
+    content: " ";
+    display: inline-block;
+  }
+
+  .ProseMirror-selectednode pre {
+    outline: 1px solid rgba(0, 255, 0, 0.5);
+    box-shadow: 0 0 6px rgba(0, 255, 0, 0.3);
+  }
+
+  /* ========================= */
+  /*       Inline Code         */
+  /* ========================= */
+  code:not(pre code) {
+    background-color: rgba(0, 255, 0, 0.1);
+    border-radius: 0.25rem;
+    color: var(--matrix-green);
+    font-family: 'JetBrainsMono', monospace;
+    font-size: 0.85rem;
+    padding: 0.1rem 0.25rem;
+  }
+
+  /* ========================= */
+  /*        Headings etc.      */
+  /* ========================= */
+  h1, h2, h3, h4, h5, h6 {
+    color: #00ff00;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+  }
+
+  strong {
+    color: #00ff00;
+    font-weight: bold;
+  }
+
+  em {
+    color: #00ff00;
+    font-style: italic;
+  }
+
+  p {
+    word-break: break-word;
+  }
+
+  /* ========================= */
+  /*    Placeholder Text       */
+  /* ========================= */
   p.is-editor-empty:first-child::before {
     color: rgba(0, 255, 0, 0.4);
     content: attr(data-placeholder);
@@ -48,11 +132,9 @@ body {
     pointer-events: none;
   }
 
-  p {
-    word-break: break-all;
-  }
-
-  /* Give a remote user a caret */
+  /* ========================= */
+  /*     Collaboration Cursors */
+  /* ========================= */
   .collaboration-carets__caret {
     border-left: 1px solid #00ff00;
     border-right: 1px solid #00ff00;
@@ -63,7 +145,6 @@ body {
     word-break: normal;
   }
 
-  /* Render the username above the caret */
   .collaboration-carets__label {
     border-radius: 3px 3px 3px 0;
     color: #000000;
@@ -78,20 +159,5 @@ body {
     top: -1.4em;
     user-select: none;
     white-space: nowrap;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    color: #00ff00;
-    font-weight: bold;
-  }
-  
-  strong {
-    color: #00ff00;
-    font-weight: bold;
-  }
-  
-  em {
-    color: #00ff00;
-    font-style: italic;
   }
 }

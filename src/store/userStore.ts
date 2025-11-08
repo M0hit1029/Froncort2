@@ -14,9 +14,9 @@ interface UserStore {
 
 // Mock users
 const mockUsers: User[] = [
-  { id: 'userA', name: 'Alice', email: 'alice@example.com' },
-  { id: 'userB', name: 'Bob', email: 'bob@example.com' },
-  { id: 'userC', name: 'Charlie', email: 'charlie@example.com' },
+  { id: 'userA', name: 'Mohit', email: 'mohit@example.com' },
+  { id: 'userB', name: 'Rahul', email: 'rahul@example.com' },
+  { id: 'userC', name: 'Sid', email: 'sid@example.com' },
 ];
 
 export const useUserStore = create<UserStore>((set) => ({

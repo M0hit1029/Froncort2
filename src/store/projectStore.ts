@@ -33,8 +33,6 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   sharedProjects: [
     // Pre-populate some shares for testing
     { projectId: '1', userId: 'userB', role: 'editor', sharedAt: new Date() },
-    { projectId: '2', userId: 'userC', role: 'viewer', sharedAt: new Date() },
-    { projectId: '3', userId: 'userA', role: 'admin', sharedAt: new Date() },
   ],
   selectedProjectId: null,
   setSelectedProject: (id: string) => set({ selectedProjectId: id }),

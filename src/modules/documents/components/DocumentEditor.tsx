@@ -17,6 +17,7 @@ import VersionHistoryModal from "@/components/VersionHistoryModal";
 import VersionComparisonModal from "@/components/VersionComparisonModal";
 import { Save, History, Clock } from "lucide-react";
 import { yDocToProsemirrorJSON } from 'y-prosemirror';
+import CodeBlock from "@tiptap/extension-code-block";
 
 const stringColor = () => {
   // Simple function to generate a color from a string
@@ -321,6 +322,12 @@ const editor = useEditor(
           color: stringColor(),
         }
       }),
+      CodeBlock.configure({
+        defaultLanguage: 'plaintext',
+        HTMLAttributes:{
+          class: 'my-code-block'
+        }
+      })
     ],
     editorProps: {
       attributes: {
@@ -460,6 +467,24 @@ return (
               } border border-[#00ff00]/30 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             1. List
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()} disabled={!isEditable}
+            className={`px-3 py-1 rounded ${editor.isActive("codeBlock")
+                ? "bg-[#004000] text-[#00ff00]"
+                : "bg-black text-[#00ff00] hover:bg-[#002000]"
+              } border border-[#00ff00]/30 disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            Toggle Code Block
+          </button>
+          <button
+            onClick={() => editor.chain().focus().setCodeBlock().run()} disabled={editor.isActive('codeBlock') && !isEditable}
+            className={`px-3 py-1 rounded ${editor.isActive("codeBlock")
+                ? "bg-[#004000] text-[#00ff00]"
+                : "bg-black text-[#00ff00] hover:bg-[#002000]"
+              } border border-[#00ff00]/30 disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            Set Code Block
           </button>
           <div className="w-px h-6 bg-[#00ff00]/20 mx-1"></div>
           <button
