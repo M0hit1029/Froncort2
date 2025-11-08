@@ -12,13 +12,15 @@ interface KanbanColumnProps {
   board: Board;
   tasks: Task[];
   canEdit: boolean;
-  onAddTask: (boardId: string, title: string, description?: string, assignedUsers?: string[]) => void;
+  onAddTask: (boardId: string, title: string, description?: string, link?: string, assignedUsers?: string[]) => void;
+  onTaskClick: (task: Task) => void;
 }
 
-export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnProps) {
+export function KanbanColumn({ board, tasks, canEdit, onAddTask, onTaskClick }: KanbanColumnProps) {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskLink, setNewTaskLink] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const { users } = useUserStore();
@@ -33,10 +35,12 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
         board.id, 
         newTaskTitle.trim(), 
         newTaskDescription.trim() || undefined,
+        newTaskLink.trim() || undefined,
         selectedUsers.length > 0 ? selectedUsers : undefined
       );
       setNewTaskTitle('');
       setNewTaskDescription('');
+      setNewTaskLink('');
       setSelectedUsers([]);
       setIsAddingTask(false);
     }
@@ -45,6 +49,7 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
   const handleCancel = () => {
     setNewTaskTitle('');
     setNewTaskDescription('');
+    setNewTaskLink('');
     setSelectedUsers([]);
     setIsAddingTask(false);
   };
@@ -71,7 +76,13 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="space-y-2 min-h-[200px]">
           {tasks.map((task) => (
-            <KanbanCard key={task.id} task={task} isDragging={false} canDrag={canEdit} />
+            <KanbanCard 
+              key={task.id} 
+              task={task} 
+              isDragging={false} 
+              canDrag={canEdit}
+              onClick={() => onTaskClick(task)}
+            />
           ))}
         </div>
       </SortableContext>
@@ -102,6 +113,13 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
                 onChange={(e) => setNewTaskDescription(e.target.value)}
                 className="w-full px-2 py-1 bg-black border border-[#00ff00]/30 text-[#00ff00] rounded focus:outline-none focus:ring-2 focus:ring-[#00ff00] text-sm placeholder-[#00ff00]/50"
                 rows={2}
+              />
+              <input
+                type="url"
+                placeholder="Link (optional)"
+                value={newTaskLink}
+                onChange={(e) => setNewTaskLink(e.target.value)}
+                className="w-full px-2 py-1 bg-black border border-[#00ff00]/30 text-[#00ff00] rounded focus:outline-none focus:ring-2 focus:ring-[#00ff00] text-sm placeholder-[#00ff00]/50"
               />
               
               {/* User Assignment Section */}

@@ -4,10 +4,12 @@ export interface Task {
   id: string;
   title: string;
   description?: string;
+  link?: string;
   boardId: string;
   projectId: string;
   position: number;
   assignedUsers?: string[]; // Array of user IDs
+  createdBy: string; // User ID of the creator
 }
 
 export interface Board {
@@ -23,6 +25,7 @@ interface KanbanStore {
   addBoard: (board: Board) => void;
   addTask: (task: Task) => void;
   updateTask: (taskId: string, updates: Partial<Task>) => void;
+  deleteTask: (taskId: string) => void;
   moveTask: (taskId: string, newBoardId: string, newPosition: number) => void;
   getBoardsByProject: (projectId: string) => Board[];
   getTasksByBoard: (boardId: string) => Task[];
@@ -45,6 +48,7 @@ const mockTasks: Task[] = [
     boardId: 'board-1',
     projectId: '1',
     position: 0,
+    createdBy: 'userA',
   },
   {
     id: 'task-2',
@@ -53,6 +57,7 @@ const mockTasks: Task[] = [
     boardId: 'board-1',
     projectId: '1',
     position: 1,
+    createdBy: 'userA',
   },
   {
     id: 'task-3',
@@ -61,6 +66,7 @@ const mockTasks: Task[] = [
     boardId: 'board-2',
     projectId: '1',
     position: 0,
+    createdBy: 'userB',
   },
   {
     id: 'task-4',
@@ -69,6 +75,7 @@ const mockTasks: Task[] = [
     boardId: 'board-3',
     projectId: '1',
     position: 0,
+    createdBy: 'userC',
   },
   {
     id: 'task-5',
@@ -77,6 +84,7 @@ const mockTasks: Task[] = [
     boardId: 'board-4',
     projectId: '2',
     position: 0,
+    createdBy: 'userA',
   },
 ];
 
@@ -100,6 +108,24 @@ export const useKanbanStore = create<KanbanStore>((set, get) => ({
         task.id === taskId ? { ...task, ...updates } : task
       ),
     })),
+  
+  deleteTask: (taskId: string) =>
+    set((state) => {
+      const task = state.tasks.find((t) => t.id === taskId);
+      if (!task) return state;
+      
+      const updatedTasks = state.tasks
+        .filter((t) => t.id !== taskId)
+        .map((t) => {
+          // Adjust positions of tasks in the same board
+          if (t.boardId === task.boardId && t.position > task.position) {
+            return { ...t, position: t.position - 1 };
+          }
+          return t;
+        });
+      
+      return { tasks: updatedTasks };
+    }),
   
   moveTask: (taskId: string, newBoardId: string, newPosition: number) =>
     set((state) => {

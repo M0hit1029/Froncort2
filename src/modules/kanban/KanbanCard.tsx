@@ -9,9 +9,10 @@ interface KanbanCardProps {
   task: Task;
   isDragging: boolean;
   canDrag?: boolean;
+  onClick?: () => void;
 }
 
-export function KanbanCard({ task, isDragging, canDrag = true }: KanbanCardProps) {
+export function KanbanCard({ task, isDragging, canDrag = true, onClick }: KanbanCardProps) {
   const { users } = useUserStore();
   const {
     attributes,
@@ -38,8 +39,14 @@ export function KanbanCard({ task, isDragging, canDrag = true }: KanbanCardProps
       style={style}
       {...(canDrag ? attributes : {})}
       {...(canDrag ? listeners : {})}
+      onClick={() => {
+        // Only trigger onClick if not dragging and callback exists
+        if (!isSortableDragging && onClick) {
+          onClick();
+        }
+      }}
       className={`bg-black rounded-lg p-3 border border-[#00ff00]/40 ${
-        canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+        canDrag ? 'cursor-grab active:cursor-grabbing' : onClick ? 'cursor-pointer' : 'cursor-default'
       } ${isDragging ? 'shadow-lg shadow-[#00ff00]/20' : 'hover:border-[#00ff00]/60 hover:shadow-md hover:shadow-[#00ff00]/10'} transition-all`}
     >
       <h4 className="font-medium text-sm mb-1 text-[#00ff00]">{task.title}</h4>

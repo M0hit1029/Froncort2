@@ -22,6 +22,7 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanCard } from './KanbanCard';
 import { AddBoardButton } from './AddBoardButton';
+import { TaskDetailsModal } from './TaskDetailsModal';
 import { subscribeToProject, emitProjectEvent } from '@/lib/realtime';
 import { canEdit } from '@/lib/permissions';
 
@@ -30,12 +31,14 @@ interface KanbanBoardProps {
 }
 
 export default function KanbanBoard({ projectId }: KanbanBoardProps) {
-  const { getBoardsByProject, getTasksByBoard, moveTask, addBoard, addTask } = useKanbanStore();
+  const { getBoardsByProject, getTasksByBoard, moveTask, addBoard, addTask, updateTask, deleteTask } = useKanbanStore();
   const { getUserRoleForProject } = useProjectStore();
   const { currentUser, users } = useUserStore();
   const { addNotification } = useNotificationStore();
   
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const boards = getBoardsByProject(projectId);
   const userRole = getUserRoleForProject(projectId, currentUser.id);
@@ -67,6 +70,16 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
       } else if (event.eventType === 'kanban:card:add') {
         const task = event.payload as unknown as Task;
         addTask(task);
+      } else if (event.eventType === 'kanban:card:update') {
+        const { taskId, updates } = event.payload;
+        if (typeof taskId === 'string' && updates) {
+          updateTask(taskId, updates);
+        }
+      } else if (event.eventType === 'kanban:card:delete') {
+        const { taskId } = event.payload;
+        if (typeof taskId === 'string') {
+          deleteTask(taskId);
+        }
       } else if (event.eventType === 'kanban:board:add') {
         const board = event.payload as unknown as Board;
         addBoard(board);
@@ -82,7 +95,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     return () => {
       unsubscribe();
     };
-  }, [projectId, moveTask, addTask, addBoard, addNotification]);
+  }, [projectId, moveTask, addTask, addBoard, updateTask, deleteTask, addNotification]);
   
   const handleDragStart = (event: DragStartEvent) => {
     if (!canEditKanban) return;
@@ -189,7 +202,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
     emitProjectEvent(projectId, 'kanban:board:add', newBoard, currentUser.id);
   };
   
-  const handleAddTask = (boardId: string, title: string, description?: string, assignedUsers?: string[]) => {
+  const handleAddTask = (boardId: string, title: string, description?: string, link?: string, assignedUsers?: string[]) => {
     if (!canEditKanban) return;
     
     const tasksInBoard = getTasksByBoard(boardId);
@@ -197,10 +210,12 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
       id: `task-${crypto.randomUUID()}`,
       title,
       description,
+      link,
       boardId,
       projectId,
       position: tasksInBoard.length,
       assignedUsers: assignedUsers || [],
+      createdBy: currentUser.id,
     };
     
     addTask(newTask);
@@ -234,6 +249,34 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
         }
       });
     }
+  };
+
+  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
+    if (!canEditKanban) return;
+    
+    updateTask(taskId, updates);
+    
+    // Emit realtime event for task update
+    emitProjectEvent(projectId, 'kanban:card:update', { taskId, updates }, currentUser.id);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    if (!canEditKanban) return;
+    
+    deleteTask(taskId);
+    
+    // Emit realtime event for task delete
+    emitProjectEvent(projectId, 'kanban:card:delete', { taskId }, currentUser.id);
+  };
+
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsModalOpen(true);
+  };
+  
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTask(null);
   };
   
   if (!userRole) {
@@ -271,6 +314,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
                 tasks={tasks}
                 canEdit={canEditKanban}
                 onAddTask={handleAddTask}
+                onTaskClick={handleTaskClick}
               />
             );
           })}
@@ -282,6 +326,18 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
           {activeTask ? <KanbanCard task={activeTask} isDragging /> : null}
         </DragOverlay>
       </DndContext>
+      
+      {selectedTask && (
+        <TaskDetailsModal
+          key={selectedTask.id}
+          task={selectedTask}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onUpdate={handleUpdateTask}
+          onDelete={handleDeleteTask}
+          canEdit={canEditKanban}
+        />
+      )}
     </div>
   );
 }
