@@ -12,8 +12,9 @@ import { useUserStore } from "@/store/userStore";
 import { canEdit } from "@/lib/permissions";
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { HocuspocusProvider } from '@hocuspocus/provider'
-import { useVersionStore } from "@/store/versionStore";
+import { useVersionStore, DocumentVersion } from "@/store/versionStore";
 import VersionHistoryModal from "@/components/VersionHistoryModal";
+import VersionComparisonModal from "@/components/VersionComparisonModal";
 import { Save, History, Clock } from "lucide-react";
 import { yDocToProsemirrorJSON } from 'y-prosemirror';
 
@@ -35,7 +36,8 @@ interface DocumentEditorProps {
   documentTitle?: string;
 }
 
-const AUTO_SAVE_INTERVAL = 120000; // 2 minutes in milliseconds
+const AUTO_SAVE_INTERVAL = 300000; // 5 minutes in milliseconds
+const SIGNIFICANT_CHANGE_THRESHOLD = 100; // characters changed to trigger immediate save
 
 export default function DocumentEditor({
   projectId,
@@ -52,8 +54,17 @@ export default function DocumentEditor({
 
   // State for version history modal
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+  const [comparisonVersions, setComparisonVersions] = useState<{
+    version1: DocumentVersion;
+    version2: DocumentVersion;
+  } | null>(null);
   const [lastAutoSaveTime, setLastAutoSaveTime] = useState(() => Date.now());
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  
+  // Track changes for optimized auto-save
+  const lastSavedContentLength = useRef<number>(0);
+  const changesSinceLastSave = useRef<number>(0);
 
   // Update current time every second for UI display
   useEffect(() => {
@@ -78,7 +89,7 @@ export default function DocumentEditor({
   const providerRef = useRef<HocuspocusProvider | null>(null);
   const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
 
-  const saveVersion = useCallback((isAutoSave: boolean = false) => {
+  const saveVersion = useCallback((isAutoSave: boolean = false, forceSignificant: boolean = false) => {
     if (!yDocRef.current) return;
 
     // Check if there are active collaborators (excluding self)
@@ -118,12 +129,26 @@ export default function DocumentEditor({
       if (isAutoSave) {
         setLastAutoSaveTime(now);
       }
+      
+      // Reset change tracking after save
+      changesSinceLastSave.current = 0;
+      
+      // Update last saved content length
+      if (editorRef.current) {
+        lastSavedContentLength.current = editorRef.current.getText().length;
+      }
 
-      console.log(`Version saved (${isAutoSave ? 'auto' : 'manual'})`);
+      console.log(`Version saved (${isAutoSave ? 'auto' : 'manual'}${forceSignificant ? ' - significant changes' : ''})`);
     } catch (error) {
       console.error("Error saving version:", error);
     }
   }, [docId, projectId, documentTitle, userName, addVersion]);
+
+  const handleCompareVersions = useCallback((version1: DocumentVersion, version2: DocumentVersion) => {
+    setComparisonVersions({ version1, version2 });
+    setIsVersionModalOpen(false);
+    setIsComparisonModalOpen(true);
+  }, []);
 
   const restoreVersion = useCallback((versionId: string) => {
     if (!yDocRef.current || !editorRef.current) return;
@@ -231,16 +256,32 @@ useEffect(() => {
   return unsubscribe;
 }, [projectId, docId]);
 
-// Auto-save functionality
+// Auto-save functionality with optimized timing
 useEffect(() => {
   if (!isEditable) return; // Don't auto-save if user doesn't have edit permissions
 
+  // Check for significant changes periodically
+  const significantChangeCheckInterval = setInterval(() => {
+    if (changesSinceLastSave.current >= SIGNIFICANT_CHANGE_THRESHOLD) {
+      console.log("Significant changes detected, auto-saving immediately");
+      saveVersion(true, true); // Auto-save with significant flag
+    }
+  }, 10000); // Check every 10 seconds
+
+  // Regular auto-save interval (5 minutes)
   const autoSaveInterval = setInterval(() => {
-    saveVersion(true); // Auto-save
+    if (changesSinceLastSave.current > 0) {
+      saveVersion(true); // Auto-save
+    } else {
+      console.log("No changes detected, skipping auto-save");
+    }
   }, AUTO_SAVE_INTERVAL);
 
-  return () => clearInterval(autoSaveInterval);
-}, [isEditable, projectId, docId, documentTitle, userName]); // eslint-disable-line react-hooks/exhaustive-deps
+  return () => {
+    clearInterval(significantChangeCheckInterval);
+    clearInterval(autoSaveInterval);
+  };
+}, [isEditable, saveVersion]);
 
 // Cleanup on unmount only
 useEffect(() => {
@@ -287,7 +328,13 @@ const editor = useEditor(
           "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4",
       },
     },
-    onUpdate: () => {
+    onUpdate: ({ editor }) => {
+      // Track changes for optimized auto-save
+      const currentLength = editor.getText().length;
+      const lengthDiff = Math.abs(currentLength - lastSavedContentLength.current);
+      changesSinceLastSave.current += lengthDiff;
+      lastSavedContentLength.current = currentLength;
+
       // Optional: Emit document update event for activity logging
       const now = Date.now();
       if (now - lastEmitTime.current > 5000) {
@@ -457,7 +504,20 @@ return (
       versions={getDocumentVersions(docId)}
       onRestore={(version) => restoreVersion(version.id)}
       onDelete={(versionId) => deleteVersion(versionId)}
+      onCompare={handleCompareVersions}
     />
+
+    {comparisonVersions && (
+      <VersionComparisonModal
+        isOpen={isComparisonModalOpen}
+        onClose={() => {
+          setIsComparisonModalOpen(false);
+          setComparisonVersions(null);
+        }}
+        version1={comparisonVersions.version1}
+        version2={comparisonVersions.version2}
+      />
+    )}
   </div>
 );
 }
