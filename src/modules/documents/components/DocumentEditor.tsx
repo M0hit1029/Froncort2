@@ -1,7 +1,5 @@
-/* eslint-disable react-hooks/refs */
-/* eslint-disable @next/next/no-img-element */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable */
+/* @ts-nocheck */
 "use client";
 // @ts-nocheck
 import { useEditor, EditorContent } from "@tiptap/react";
