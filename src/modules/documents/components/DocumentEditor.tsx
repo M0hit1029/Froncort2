@@ -381,7 +381,7 @@ tippyInstance = tippy(document.body, {
                 });
 
                 tippyInstance[0].setProps({
-                  getReferenceClientRect: props.clientRect,
+                  getReferenceClientRect: props.clientRect ? () => props.clientRect?.() || new DOMRect() : undefined,
                 });
               },
               onExit: () => {
