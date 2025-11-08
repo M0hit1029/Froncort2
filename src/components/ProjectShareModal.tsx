@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useProjectStore } from "@/store/projectStore"
+import { useUserStore } from "@/store/userStore"
 import {
   Dialog,
   DialogContent,
@@ -28,18 +29,49 @@ interface ProjectShareModalProps {
 
 export function ProjectShareModal({ projectId }: ProjectShareModalProps) {
   const [open, setOpen] = useState(false)
-  const [emailOrUsername, setEmailOrUsername] = useState("")
+  const [searchInput, setSearchInput] = useState("")
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [role, setRole] = useState<"viewer" | "editor" | "admin">("viewer")
   const { addShare } = useProjectStore()
+  const { users, currentUser } = useUserStore()
+
+  // Filter users based on search input, excluding current user
+  const filteredUsers = useMemo(() => {
+    if (!searchInput.trim()) return []
+    
+    const searchLower = searchInput.toLowerCase()
+    return users
+      .filter((user) => user.id !== currentUser.id) // Don't show current user
+      .filter((user) => 
+        user.name.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower)
+      )
+  }, [searchInput, users, currentUser.id])
+
+  const handleInputChange = (value: string) => {
+    setSearchInput(value)
+    setSelectedUserId(null)
+    setShowSuggestions(true)
+  }
+
+  const handleSelectUser = (userId: string, userName: string, userEmail: string) => {
+    setSelectedUserId(userId)
+    setSearchInput(`${userName} (${userEmail})`)
+    setShowSuggestions(false)
+  }
+
+  const handleInputBlur = () => {
+    // Delay hiding to allow click event on suggestions to fire
+    setTimeout(() => setShowSuggestions(false), 200)
+  }
 
   const handleShare = () => {
-    const trimmedInput = emailOrUsername.trim()
-    if (trimmedInput) {
-      // Basic sanitization - remove any HTML tags or special characters that could be problematic
-      const sanitizedInput = trimmedInput.replace(/[<>]/g, '')
-      addShare(projectId, sanitizedInput, role)
+    if (selectedUserId) {
+      addShare(projectId, selectedUserId, role)
       // Reset form
-      setEmailOrUsername("")
+      setSearchInput("")
+      setSelectedUserId(null)
       setRole("viewer")
       setOpen(false)
     }
@@ -54,18 +86,38 @@ export function ProjectShareModal({ projectId }: ProjectShareModalProps) {
         <DialogHeader>
           <DialogTitle>Share Project</DialogTitle>
           <DialogDescription>
-            Invite someone to collaborate on this project by entering their email or username.
+            Invite someone to collaborate on this project by searching for their name or email.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">Email or Username</Label>
-            <Input
-              id="email"
-              placeholder="user@example.com or username"
-              value={emailOrUsername}
-              onChange={(e) => setEmailOrUsername(e.target.value)}
-            />
+            <Label htmlFor="user-search">Search User</Label>
+            <div className="relative">
+              <Input
+                id="user-search"
+                placeholder="Type name or email..."
+                value={searchInput}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={handleInputBlur}
+                autoComplete="off"
+              />
+              {showSuggestions && filteredUsers.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-black border border-[#00ff00]/30 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredUsers.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className="w-full px-3 py-2 text-left hover:bg-[#00ff00]/10 focus:bg-[#00ff00]/10 focus:outline-none transition-colors"
+                      onClick={() => handleSelectUser(user.id, user.name, user.email)}
+                    >
+                      <div className="text-[#00ff00] font-medium">{user.name}</div>
+                      <div className="text-[#00ff00]/70 text-sm">{user.email}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="role">Role</Label>
@@ -82,7 +134,11 @@ export function ProjectShareModal({ projectId }: ProjectShareModalProps) {
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" onClick={handleShare}>
+          <Button 
+            type="button" 
+            onClick={handleShare}
+            disabled={!selectedUserId}
+          >
             Share
           </Button>
         </DialogFooter>
