@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
 import { Share_Tech_Mono } from "next/font/google";
+import { ToastNotificationProvider } from "@/components/ToastNotificationProvider";
 
 const shareTechMono = Share_Tech_Mono({
   subsets: ["latin"],
@@ -26,6 +27,7 @@ export default function RootLayout({
           <Sidebar />
           <main className="flex-1">{children}</main>
         </div>
+        <ToastNotificationProvider />
       </body>
     </html>
   );

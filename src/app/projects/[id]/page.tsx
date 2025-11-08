@@ -6,8 +6,9 @@ import { ProjectHeader } from '@/components/ProjectHeader';
 import KanbanView from '@/modules/kanban/KanbanView';
 import DocumentsView from '@/modules/documents/DocumentsView';
 import ActivityFeedView from '@/modules/activity/ActivityFeedView';
+import AssignedTasksView from '@/modules/kanban/AssignedTasksView';
 
-type Tab = 'kanban' | 'documents' | 'activity';
+type Tab = 'kanban' | 'documents' | 'activity' | 'assigned';
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -31,6 +32,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'kanban', label: 'Kanban' },
+    { id: 'assigned', label: 'Assigned Tasks' },
     { id: 'documents', label: 'Documents' },
     { id: 'activity', label: 'Activity Feed' },
   ];
@@ -62,6 +64,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
       <div className="bg-black min-h-screen">
         {activeTab === 'kanban' && <KanbanView />}
+        {activeTab === 'assigned' && <AssignedTasksView projectId={project.id} />}
         {activeTab === 'documents' && <DocumentsView />}
         {activeTab === 'activity' && <ActivityFeedView projectId={project.id} />}
       </div>

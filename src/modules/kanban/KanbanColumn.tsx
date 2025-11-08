@@ -5,19 +5,23 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Board, Task } from '@/store/kanbanStore';
 import { KanbanCard } from './KanbanCard';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
+import { useUserStore } from '@/store/userStore';
 
 interface KanbanColumnProps {
   board: Board;
   tasks: Task[];
   canEdit: boolean;
-  onAddTask: (boardId: string, title: string, description?: string) => void;
+  onAddTask: (boardId: string, title: string, description?: string, assignedUsers?: string[]) => void;
 }
 
 export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnProps) {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const { users } = useUserStore();
   
   const { setNodeRef } = useDroppable({
     id: board.id,
@@ -25,9 +29,15 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
   
   const handleAddTask = () => {
     if (newTaskTitle.trim()) {
-      onAddTask(board.id, newTaskTitle.trim(), newTaskDescription.trim() || undefined);
+      onAddTask(
+        board.id, 
+        newTaskTitle.trim(), 
+        newTaskDescription.trim() || undefined,
+        selectedUsers.length > 0 ? selectedUsers : undefined
+      );
       setNewTaskTitle('');
       setNewTaskDescription('');
+      setSelectedUsers([]);
       setIsAddingTask(false);
     }
   };
@@ -35,7 +45,20 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
   const handleCancel = () => {
     setNewTaskTitle('');
     setNewTaskDescription('');
+    setSelectedUsers([]);
     setIsAddingTask(false);
+  };
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const removeUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((id) => id !== userId));
   };
   
   return (
@@ -65,7 +88,8 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
                 className="w-full px-2 py-1 bg-black border border-[#00ff00]/30 text-[#00ff00] rounded focus:outline-none focus:ring-2 focus:ring-[#00ff00] placeholder-[#00ff00]/50"
                 autoFocus
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
                     handleAddTask();
                   } else if (e.key === 'Escape') {
                     handleCancel();
@@ -79,6 +103,72 @@ export function KanbanColumn({ board, tasks, canEdit, onAddTask }: KanbanColumnP
                 className="w-full px-2 py-1 bg-black border border-[#00ff00]/30 text-[#00ff00] rounded focus:outline-none focus:ring-2 focus:ring-[#00ff00] text-sm placeholder-[#00ff00]/50"
                 rows={2}
               />
+              
+              {/* User Assignment Section */}
+              <div className="space-y-2">
+                <label className="text-xs text-[#00ff00]/70">Assign to:</label>
+                
+                {/* Selected Users Display */}
+                {selectedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedUsers.map((userId) => {
+                      const user = users.find((u) => u.id === userId);
+                      return user ? (
+                        <div
+                          key={userId}
+                          className="flex items-center gap-1 px-2 py-1 bg-[#004000] border border-[#00ff00]/50 rounded text-xs text-[#00ff00]"
+                        >
+                          <span>{user.name}</span>
+                          <button
+                            onClick={() => removeUser(userId)}
+                            className="hover:text-[#00ff00] text-[#00ff00]/70"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+                
+                {/* User Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                    className="w-full px-2 py-1 bg-black border border-[#00ff00]/30 text-[#00ff00] rounded text-sm text-left hover:border-[#00ff00]/50"
+                  >
+                    {selectedUsers.length === 0 ? 'Select users...' : `${selectedUsers.length} user(s) selected`}
+                  </button>
+                  
+                  {showUserDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-black border border-[#00ff00]/50 rounded shadow-lg max-h-40 overflow-y-auto">
+                      {users.map((user) => (
+                        <div
+                          key={user.id}
+                          onClick={() => toggleUserSelection(user.id)}
+                          className={`px-3 py-2 cursor-pointer hover:bg-[#002000] text-sm ${
+                            selectedUsers.includes(user.id)
+                              ? 'bg-[#004000] text-[#00ff00]'
+                              : 'text-[#00ff00]/70'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedUsers.includes(user.id)}
+                              onChange={() => {}}
+                              className="accent-[#00ff00]"
+                            />
+                            <span>{user.name}</span>
+                            <span className="text-xs text-[#00ff00]/50">({user.email})</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
               <div className="flex gap-2">
                 <button
                   onClick={handleAddTask}

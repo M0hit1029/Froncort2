@@ -7,6 +7,7 @@ export interface Task {
   boardId: string;
   projectId: string;
   position: number;
+  assignedUsers?: string[]; // Array of user IDs
 }
 
 export interface Board {
