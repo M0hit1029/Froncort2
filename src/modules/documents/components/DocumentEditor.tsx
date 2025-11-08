@@ -1,6 +1,3 @@
-/* eslint-disable react-hooks/refs */
-"use client";
-
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Collaboration from "@tiptap/extension-collaboration";
@@ -12,11 +9,9 @@ import { useUserStore } from "@/store/userStore";
 import { canEdit } from "@/lib/permissions";
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { HocuspocusProvider } from '@hocuspocus/provider'
-import { useVersionStore, DocumentVersion } from "@/store/versionStore";
-import VersionHistoryModal from "@/components/VersionHistoryModal";
-import VersionComparisonModal from "@/components/VersionComparisonModal";
-import { Save, History, Clock } from "lucide-react";
-import { yDocToProsemirrorJSON } from 'y-prosemirror';
+import { useVersionStore } from "@/store/versionStore";
+import { useNotificationStore } from "@/store/notificationStore";
+import { Save, Clock } from "lucide-react";
 import CodeBlock from "@tiptap/extension-code-block";
 
 const stringColor = () => {
@@ -48,18 +43,13 @@ export default function DocumentEditor({
 }: DocumentEditorProps) {
   const { getUserRoleForProject } = useProjectStore();
   const { currentUser } = useUserStore();
-  const { addVersion, getDocumentVersions, deleteVersion } = useVersionStore();
+  const { addVersion } = useVersionStore();
+  const { addNotification } = useNotificationStore();
 
   const userRole = getUserRoleForProject(projectId, currentUser.id);
   const isEditable = canEdit(userRole);
 
-  // State for version history modal
-  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
-  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
-  const [comparisonVersions, setComparisonVersions] = useState<{
-    version1: DocumentVersion;
-    version2: DocumentVersion;
-  } | null>(null);
+  // State removed: no more version modal UI
   const [lastAutoSaveTime, setLastAutoSaveTime] = useState(() => Date.now());
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   
@@ -129,6 +119,13 @@ export default function DocumentEditor({
 
       if (isAutoSave) {
         setLastAutoSaveTime(now);
+      } else {
+        // Show success toast for manual save
+        addNotification({
+          userId: currentUser.id,
+          type: 'success',
+          message: 'Version saved successfully',
+        });
       }
       
       // Reset change tracking after save
@@ -142,49 +139,16 @@ export default function DocumentEditor({
       console.log(`Version saved (${isAutoSave ? 'auto' : 'manual'}${forceSignificant ? ' - significant changes' : ''})`);
     } catch (error) {
       console.error("Error saving version:", error);
+      if (!isAutoSave) {
+        // Show error toast for manual save
+        addNotification({
+          userId: currentUser.id,
+          type: 'error',
+          message: 'Failed to save version',
+        });
+      }
     }
-  }, [docId, projectId, documentTitle, userName, addVersion]);
-
-  const handleCompareVersions = useCallback((version1: DocumentVersion, version2: DocumentVersion) => {
-    setComparisonVersions({ version1, version2 });
-    setIsVersionModalOpen(false);
-    setIsComparisonModalOpen(true);
-  }, []);
-
-  const restoreVersion = useCallback((versionId: string) => {
-    if (!yDocRef.current || !editorRef.current) return;
-
-    const versions = getDocumentVersions(docId);
-    const version = versions.find(v => v.id === versionId);
-
-    if (!version) {
-      console.error("Version not found");
-      return;
-    }
-
-    try {
-      // Create a temporary Y.Doc to extract the content from the version
-      const tempDoc = new Y.Doc();
-      
-      // Apply the version update to the temporary document
-      Y.applyUpdate(tempDoc, version.content);
-      
-      // Extract the content as JSON using the same field name used in Collaboration
-      const contentJSON = yDocToProsemirrorJSON(tempDoc, 'content');
-      
-      // Use TipTap's setContent method to properly update the editor
-      // This ensures the editor state stays synchronized
-      editorRef.current.commands.setContent(contentJSON);
-      
-      // Clean up the temporary document
-      tempDoc.destroy();
-
-      console.log("Version restored successfully");
-      setIsVersionModalOpen(false);
-    } catch (error) {
-      console.error("Error restoring version:", error);
-    }
-  }, [docId, getDocumentVersions]);
+  }, [docId, projectId, documentTitle, userName, addVersion, addNotification, currentUser.id]);
 
 // Lazy initialization of yDoc
 if (!yDocRef.current) {
@@ -496,14 +460,6 @@ return (
             <Save className="w-4 h-4" />
             <span className="hidden sm:inline">Save Version</span>
           </button>
-          <button
-            onClick={() => setIsVersionModalOpen(true)}
-            className="flex items-center gap-1 px-3 py-1 rounded bg-black text-[#00ff00] hover:bg-[#002000] border border-[#00ff00]/30"
-            title="View version history"
-          >
-            <History className="w-4 h-4" />
-            <span className="hidden sm:inline">History</span>
-          </button>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-xs text-[#00ff00]/50 flex items-center gap-1">
@@ -522,27 +478,6 @@ return (
     <div className="border border-[#00ff00]/20 rounded-lg bg-black min-h-[300px]">
       <EditorContent editor={editor} />
     </div>
-
-    <VersionHistoryModal
-      isOpen={isVersionModalOpen}
-      onClose={() => setIsVersionModalOpen(false)}
-      versions={getDocumentVersions(docId)}
-      onRestore={(version) => restoreVersion(version.id)}
-      onDelete={(versionId) => deleteVersion(versionId)}
-      onCompare={handleCompareVersions}
-    />
-
-    {comparisonVersions && (
-      <VersionComparisonModal
-        isOpen={isComparisonModalOpen}
-        onClose={() => {
-          setIsComparisonModalOpen(false);
-          setComparisonVersions(null);
-        }}
-        version1={comparisonVersions.version1}
-        version2={comparisonVersions.version2}
-      />
-    )}
   </div>
 );
 }

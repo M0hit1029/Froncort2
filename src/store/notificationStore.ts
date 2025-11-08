@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 export interface Notification {
   id: string;
   userId: string;
-  type: 'task_assignment' | 'task_update' | 'task_mention';
+  type: 'task_assignment' | 'task_update' | 'task_mention' | 'success' | 'error' | 'info';
   message: string;
   taskId?: string;
   taskTitle?: string;

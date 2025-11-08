@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { useProjectStore } from "@/store/projectStore"
 import { useUserStore } from "@/store/userStore"
+import { useNotificationStore } from "@/store/notificationStore"
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ export function ProjectShareModal({ projectId }: ProjectShareModalProps) {
   const [role, setRole] = useState<"viewer" | "editor" | "admin">("viewer")
   const { addShare } = useProjectStore()
   const { users, currentUser } = useUserStore()
+  const { addNotification } = useNotificationStore()
 
   // Filter users based on search input, excluding current user
   const filteredUsers = useMemo(() => {
@@ -68,12 +70,30 @@ export function ProjectShareModal({ projectId }: ProjectShareModalProps) {
 
   const handleShare = () => {
     if (selectedUserId) {
-      addShare(projectId, selectedUserId, role)
-      // Reset form
-      setSearchInput("")
-      setSelectedUserId(null)
-      setRole("viewer")
-      setOpen(false)
+      try {
+        addShare(projectId, selectedUserId, role)
+        
+        // Show success toast
+        addNotification({
+          userId: currentUser.id,
+          type: 'success',
+          message: `Project shared successfully with ${role} access`,
+        })
+        
+        // Reset form
+        setSearchInput("")
+        setSelectedUserId(null)
+        setRole("viewer")
+        setOpen(false)
+      } catch (error) {
+        // Show error toast
+        addNotification({
+          userId: currentUser.id,
+          type: 'error',
+          message: 'Failed to share project',
+        })
+        console.error("Error sharing project:", error)
+      }
     }
   }
 
