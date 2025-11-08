@@ -15,6 +15,7 @@ import { HocuspocusProvider } from '@hocuspocus/provider'
 import { useVersionStore } from "@/store/versionStore";
 import VersionHistoryModal from "@/components/VersionHistoryModal";
 import { Save, History, Clock } from "lucide-react";
+import { yDocToProsemirrorJSON } from 'y-prosemirror';
 
 const stringColor = () => {
   // Simple function to generate a color from a string
@@ -75,6 +76,7 @@ export default function DocumentEditor({
   // These are initialized lazily on first access to ensure they're available immediately
   const yDocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<HocuspocusProvider | null>(null);
+  const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
 
   const saveVersion = useCallback((isAutoSave: boolean = false) => {
     if (!yDocRef.current) return;
@@ -124,7 +126,7 @@ export default function DocumentEditor({
   }, [docId, projectId, documentTitle, userName, addVersion]);
 
   const restoreVersion = useCallback((versionId: string) => {
-    if (!yDocRef.current) return;
+    if (!yDocRef.current || !editorRef.current) return;
 
     const versions = getDocumentVersions(docId);
     const version = versions.find(v => v.id === versionId);
@@ -135,15 +137,21 @@ export default function DocumentEditor({
     }
 
     try {
-      // Clear the current document
-      yDocRef.current.transact(() => {
-        // Get the shared type and clear it
-        const xmlFragment = yDocRef.current!.getXmlFragment('content');
-        xmlFragment.delete(0, xmlFragment.length);
-      });
-
-      // Apply the version update
-      Y.applyUpdate(yDocRef.current, version.content);
+      // Create a temporary Y.Doc to extract the content from the version
+      const tempDoc = new Y.Doc();
+      
+      // Apply the version update to the temporary document
+      Y.applyUpdate(tempDoc, version.content);
+      
+      // Extract the content as JSON using the same field name used in Collaboration
+      const contentJSON = yDocToProsemirrorJSON(tempDoc, 'content');
+      
+      // Use TipTap's setContent method to properly update the editor
+      // This ensures the editor state stays synchronized
+      editorRef.current.commands.setContent(contentJSON);
+      
+      // Clean up the temporary document
+      tempDoc.destroy();
 
       console.log("Version restored successfully");
       setIsVersionModalOpen(false);
@@ -302,6 +310,11 @@ useEffect(() => {
     editor.setEditable(isEditable);
   }
 }, [editor, isEditable]);
+
+// Update editor ref whenever editor changes
+useEffect(() => {
+  editorRef.current = editor;
+}, [editor]);
 
 // Wait until provider is initialized properly
 if (!provider) {
