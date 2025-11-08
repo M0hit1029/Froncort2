@@ -47,8 +47,8 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-black text-[#00ff00] min-h-screen p-6 flex flex-col border-r border-[#00ff00]/20">
-      <h1 className="text-2xl font-bold mb-8 text-[#00ff00]">CoVerse</h1>
+    <aside className="w-64 bg-black text-[#00ff00] min-h-screen p-6 flex flex-col border-r border-[#00ff00]/20 shrink-0">
+      <h1 className="text-2xl font-bold mb-8 text-[#00ff00] flex justify-center items-center">{'<'}Co-Verse{'/>'}</h1>
       
       {/* User Dropdown */}
       <div className="mb-6 relative">

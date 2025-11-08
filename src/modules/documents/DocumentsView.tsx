@@ -18,6 +18,7 @@ export default function DocumentsView() {
   const [newDocTitle, setNewDocTitle] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+
   if (!selectedProjectId) {
     return (
       <div className="p-6">
@@ -49,9 +50,9 @@ export default function DocumentsView() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-180px)]">
+    <div className="flex">
       {/* Document List Sidebar */}
-      <div className="w-80 bg-black border-r border-[#00ff00]/20 overflow-y-auto">
+      <div className="w-60 bg-black border-r border-[#00ff00]/20 overflow-y-auto">
         <div className="p-4 border-b border-[#00ff00]/20">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -134,10 +135,7 @@ export default function DocumentsView() {
                 Last updated: {new Date(selectedDoc.updatedAt).toLocaleString()}
               </p></div>
               <div className=''>
-                <Button 
-                className='cursor-pointer'>
-                  Version History
-                </Button>
+                
               </div>
             </div>
             <DocumentEditor

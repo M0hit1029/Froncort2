@@ -100,7 +100,7 @@ export function ProjectShareModal({ projectId }: ProjectShareModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Share Project</Button>
+        <Button variant="default">Share Project</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

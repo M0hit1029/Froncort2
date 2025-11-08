@@ -86,6 +86,33 @@ body {
   font-family: 'Share Tech Mono', monospace;
 }
 
+
+/* === Custom Scrollbar === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #001a00; /* dark green background */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00ff00; /* bright green thumb */
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00cc00;
+}
+
+/* Optional for Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #00ff00 #001a00;
+}
+
+
 /* ========================================================= */
 /*                    BUTTON CURSOR STYLES                   */
 /* ========================================================= */
@@ -236,7 +263,91 @@ input[type="reset"]:disabled {
     user-select: none;
     white-space: nowrap;
   }
+
+  table {
+  border-collapse: collapse;
+  margin: 0;
+  overflow: hidden;
+  table-layout: fixed;
+  width: 100%;
+  background-color: #000; /* dark base background */
+
+  td,
+  th {
+    border: 1px solid #00ff00; /* neon green borders */
+    box-sizing: border-box;
+    min-width: 1em;
+    padding: 6px 8px;
+    position: relative;
+    vertical-align: top;
+    color: #00ff00;
+    background-color: #001800; /* subtle dark green tint */
+
+    > * {
+      margin-bottom: 0;
+    }
+  }
+
+  th {
+    background-color: #002800; /* darker header tone */
+    font-weight: bold;
+    text-align: left;
+    color: #00ff00;
+  }
+
+  .selectedCell:after {
+    background: rgba(0, 255, 0, 0.2); /* faint highlight for selected cells */
+    content: '';
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+    border: 1px solid #00ff00;
+  }
+
+  .column-resize-handle {
+    background-color: #00ff00; /* green resize indicator */
+    bottom: -2px;
+    pointer-events: none;
+    position: absolute;
+    right: -2px;
+    top: 0;
+    width: 4px;
+    border-radius: 2px;
+  }
 }
+
+.tableWrapper {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  scrollbar-color: #00ff00 #000;
+  scrollbar-width: thin;
+}
+
+.tableWrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tableWrapper::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border-radius: 8px;
+}
+
+.tableWrapper::-webkit-scrollbar-track {
+  background: #000;
+}
+
+&.resize-cursor {
+  cursor: ew-resize;
+  cursor: col-resize;
+}
+
+}
+
+
 
 .dark {
   --background: oklch(0.145 0 0);

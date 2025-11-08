@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/refs */
+"use client";
+
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Collaboration from "@tiptap/extension-collaboration";
@@ -10,9 +13,18 @@ import { canEdit } from "@/lib/permissions";
 import CollaborationCaret from '@tiptap/extension-collaboration-caret'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import { useVersionStore } from "@/store/versionStore";
-import { useNotificationStore } from "@/store/notificationStore";
-import { Save, Clock } from "lucide-react";
-import CodeBlock from "@tiptap/extension-code-block";
+import VersionHistoryModal from "@/components/VersionHistoryModal";
+import { Save, History, Clock } from "lucide-react";
+import { yDocToProsemirrorJSON } from 'y-prosemirror';
+import Mention from "@tiptap/extension-mention";
+import tippy from "tippy.js";
+import "tippy.js/dist/tippy.css"; // optional: you can customize styles
+import { Table } from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableHeader from '@tiptap/extension-table-header'
+import TableCell from '@tiptap/extension-table-cell'
+import Image from '@tiptap/extension-image'
+import CodeBlock from '@tiptap/extension-code-block'
 
 const stringColor = () => {
   // Simple function to generate a color from a string
@@ -32,8 +44,7 @@ interface DocumentEditorProps {
   documentTitle?: string;
 }
 
-const AUTO_SAVE_INTERVAL = 300000; // 5 minutes in milliseconds
-const SIGNIFICANT_CHANGE_THRESHOLD = 100; // characters changed to trigger immediate save
+const AUTO_SAVE_INTERVAL = 120000; // 2 minutes in milliseconds
 
 export default function DocumentEditor({
   projectId,
@@ -43,19 +54,15 @@ export default function DocumentEditor({
 }: DocumentEditorProps) {
   const { getUserRoleForProject } = useProjectStore();
   const { currentUser } = useUserStore();
-  const { addVersion } = useVersionStore();
-  const { addNotification } = useNotificationStore();
+  const { addVersion, getDocumentVersions, deleteVersion } = useVersionStore();
 
   const userRole = getUserRoleForProject(projectId, currentUser.id);
   const isEditable = canEdit(userRole);
 
-  // State removed: no more version modal UI
+  // State for version history modal
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [lastAutoSaveTime, setLastAutoSaveTime] = useState(() => Date.now());
   const [currentTime, setCurrentTime] = useState(() => Date.now());
-  
-  // Track changes for optimized auto-save
-  const lastSavedContentLength = useRef<number>(0);
-  const changesSinceLastSave = useRef<number>(0);
 
   // Update current time every second for UI display
   useEffect(() => {
@@ -80,7 +87,7 @@ export default function DocumentEditor({
   const providerRef = useRef<HocuspocusProvider | null>(null);
   const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
 
-  const saveVersion = useCallback((isAutoSave: boolean = false, forceSignificant: boolean = false) => {
+  const saveVersion = useCallback((isAutoSave: boolean = false) => {
     if (!yDocRef.current) return;
 
     // Check if there are active collaborators (excluding self)
@@ -119,36 +126,48 @@ export default function DocumentEditor({
 
       if (isAutoSave) {
         setLastAutoSaveTime(now);
-      } else {
-        // Show success toast for manual save
-        addNotification({
-          userId: currentUser.id,
-          type: 'success',
-          message: 'Version saved successfully',
-        });
-      }
-      
-      // Reset change tracking after save
-      changesSinceLastSave.current = 0;
-      
-      // Update last saved content length
-      if (editorRef.current) {
-        lastSavedContentLength.current = editorRef.current.getText().length;
       }
 
-      console.log(`Version saved (${isAutoSave ? 'auto' : 'manual'}${forceSignificant ? ' - significant changes' : ''})`);
+      console.log(`Version saved (${isAutoSave ? 'auto' : 'manual'})`);
     } catch (error) {
       console.error("Error saving version:", error);
-      if (!isAutoSave) {
-        // Show error toast for manual save
-        addNotification({
-          userId: currentUser.id,
-          type: 'error',
-          message: 'Failed to save version',
-        });
-      }
     }
-  }, [docId, projectId, documentTitle, userName, addVersion, addNotification, currentUser.id]);
+  }, [docId, projectId, documentTitle, userName, addVersion]);
+
+  const restoreVersion = useCallback((versionId: string) => {
+    if (!yDocRef.current || !editorRef.current) return;
+
+    const versions = getDocumentVersions(docId);
+    const version = versions.find(v => v.id === versionId);
+
+    if (!version) {
+      console.error("Version not found");
+      return;
+    }
+
+    try {
+      // Create a temporary Y.Doc to extract the content from the version
+      const tempDoc = new Y.Doc();
+      
+      // Apply the version update to the temporary document
+      Y.applyUpdate(tempDoc, version.content);
+      
+      // Extract the content as JSON using the same field name used in Collaboration
+      const contentJSON = yDocToProsemirrorJSON(tempDoc, 'content');
+      
+      // Use TipTap's setContent method to properly update the editor
+      // This ensures the editor state stays synchronized
+      editorRef.current.commands.setContent(contentJSON);
+      
+      // Clean up the temporary document
+      tempDoc.destroy();
+
+      console.log("Version restored successfully");
+      setIsVersionModalOpen(false);
+    } catch (error) {
+      console.error("Error restoring version:", error);
+    }
+  }, [docId, getDocumentVersions]);
 
 // Lazy initialization of yDoc
 if (!yDocRef.current) {
@@ -164,7 +183,7 @@ if (!providerRef.current || roomNameRef.current !== currentRoomName) {
 
   roomNameRef.current = currentRoomName;
   providerRef.current = new HocuspocusProvider({
-    url: 'ws://127.0.0.1:1234',
+    url: process.env.NEXT_PUBLIC_HOCUSPOCUS_URL || "ws://localhost:1234",
     name: currentRoomName,
     document: yDocRef.current!,
   })
@@ -221,32 +240,16 @@ useEffect(() => {
   return unsubscribe;
 }, [projectId, docId]);
 
-// Auto-save functionality with optimized timing
+// Auto-save functionality
 useEffect(() => {
   if (!isEditable) return; // Don't auto-save if user doesn't have edit permissions
 
-  // Check for significant changes periodically
-  const significantChangeCheckInterval = setInterval(() => {
-    if (changesSinceLastSave.current >= SIGNIFICANT_CHANGE_THRESHOLD) {
-      console.log("Significant changes detected, auto-saving immediately");
-      saveVersion(true, true); // Auto-save with significant flag
-    }
-  }, 10000); // Check every 10 seconds
-
-  // Regular auto-save interval (5 minutes)
   const autoSaveInterval = setInterval(() => {
-    if (changesSinceLastSave.current > 0) {
-      saveVersion(true); // Auto-save
-    } else {
-      console.log("No changes detected, skipping auto-save");
-    }
+    saveVersion(true); // Auto-save
   }, AUTO_SAVE_INTERVAL);
 
-  return () => {
-    clearInterval(significantChangeCheckInterval);
-    clearInterval(autoSaveInterval);
-  };
-}, [isEditable, saveVersion]);
+  return () => clearInterval(autoSaveInterval);
+}, [isEditable, projectId, docId, documentTitle, userName]); // eslint-disable-line react-hooks/exhaustive-deps
 
 // Cleanup on unmount only
 useEffect(() => {
@@ -270,52 +273,144 @@ const editor = useEditor(
     editable: isEditable,
     extensions: [
       StarterKit.configure({
-        undoRedo: false, // disable normal undo/redo (conflicts with collaboration)
+        undoRedo: false,
       }),
       Collaboration.configure({
         document: yDoc,
-        field: 'content',
+        field: "content",
       }),
-      // CollaborationCursor removed due to initialization timing issues
-      // The cursor plugin tries to access Collaboration's ystate before it's fully initialized
-      // Collaboration still works without showing other users' cursors
       CollaborationCaret.configure({
         provider: providerRef.current,
         user: {
           name: userName,
           color: stringColor(),
-        }
+        },
       }),
-      CodeBlock.configure({
-        defaultLanguage: 'plaintext',
-        HTMLAttributes:{
-          class: 'my-code-block'
-        }
-      })
+      CodeBlock,
+      Table.configure({
+    resizable: true, // allows resizing columns
+  }),
+  TableRow,
+  TableHeader,
+  TableCell,
+  Image.configure({
+    HTMLAttributes: {
+      class: "rounded-lg mx-auto my-4 max-w-full border border-[#00ff00]/20",
+    },
+  }),
+  Image.configure({
+  resize: {
+    enabled: true,
+    directions: ['top', 'bottom', 'left', 'right'], // can be any direction or diagonal combination
+    minWidth: 50,
+    minHeight: 50,
+    alwaysPreserveAspectRatio: true,
+  },
+  allowBase64: true,
+}),
+      // ✅ Mentions Extension (with floating tippy.js menu)
+      Mention.configure({
+        HTMLAttributes: {
+          class:
+            "bg-[#002000] text-[#00ff00] px-1 rounded cursor-pointer hover:bg-[#003300] transition-colors",
+        },
+        suggestion: {
+          char: "@",
+          items: ({ query }) => {
+            const users = [
+              { id: "1", label: "Mohit" },
+              { id: "2", label: "Rahul" },
+              { id: "3", label: "Sid" },
+              { id: "4", label: "Admin" },
+            ];
+            return users
+              .filter((user) =>
+                user.label.toLowerCase().startsWith(query.toLowerCase())
+              )
+              .slice(0, 5);
+          },
+          render: () => {
+            let popup;
+            let tippyInstance;
+
+            return {
+              onStart: (props) => {
+                popup = document.createElement("div");
+                popup.className =
+                  "bg-black border border-[#00ff00]/40 rounded-lg shadow-lg text-[#00ff00] text-sm flex flex-col";
+
+                props.items.forEach((item) => {
+                  const el = document.createElement("div");
+                  el.className =
+                    "px-2 py-1 hover:bg-[#002000] cursor-pointer rounded";
+                  el.textContent = item.label;
+                  el.onclick = () =>
+                    props.command({ id: item.id, label: item.label });
+                  popup.appendChild(el);
+                });
+
+                document.body.appendChild(popup);
+
+                // ✅ Attach dropdown near caret
+                tippyInstance = tippy("body", {
+                  getReferenceClientRect: props.clientRect,
+                  appendTo: () => document.body,
+                  content: popup,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: "manual",
+                  placement: "bottom-start",
+                  theme: "light",
+                });
+              },
+              onUpdate: (props) => {
+                if (!popup || !tippyInstance) return;
+
+                while (popup.firstChild) popup.removeChild(popup.firstChild);
+                props.items.forEach((item) => {
+                  const el = document.createElement("div");
+                  el.className =
+                    "px-2 py-1 hover:bg-[#002000] cursor-pointer rounded";
+                  el.textContent = item.label;
+                  el.onclick = () =>
+                    props.command({ id: item.id, label: item.label });
+                  popup.appendChild(el);
+                });
+
+                tippyInstance[0].setProps({
+                  getReferenceClientRect: props.clientRect,
+                });
+              },
+              onExit: () => {
+                tippyInstance?.[0]?.destroy();
+                popup?.remove();
+              },
+            };
+          },
+        },
+      }),
     ],
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4",
+          "prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none p-4 text-[#00ff00] bg-black",
       },
     },
-    onUpdate: ({ editor }) => {
-      // Track changes for optimized auto-save
-      const currentLength = editor.getText().length;
-      const lengthDiff = Math.abs(currentLength - lastSavedContentLength.current);
-      changesSinceLastSave.current += lengthDiff;
-      lastSavedContentLength.current = currentLength;
-
-      // Optional: Emit document update event for activity logging
+    onUpdate: () => {
       const now = Date.now();
       if (now - lastEmitTime.current > 5000) {
         lastEmitTime.current = now;
-        emitProjectEvent(projectId, "document:update", {
-          documentId: docId,
-          documentTitle,
-          userName,
-          timestamp: now,
-        }, currentUser.id);
+        emitProjectEvent(
+          projectId,
+          "document:update",
+          {
+            documentId: docId,
+            documentTitle,
+            userName,
+            timestamp: now,
+          },
+          currentUser.id
+        );
       }
     },
   },
@@ -376,6 +471,57 @@ return (
             <strong>B</strong>
           </button>
           <button
+  onClick={() =>
+    editor
+      ?.chain()
+      .focus()
+      .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+      .run()
+  }
+  disabled={!isEditable}
+  className="px-3 py-1 rounded bg-black text-[#00ff00] hover:bg-[#002000] border border-[#00ff00]/30"
+>
+  Table
+</button>
+<button
+  onClick={() => editor.chain().focus().deleteTable().run()}
+  className="px-3 py-1 rounded bg-black text-[#00ff00] hover:bg-[#002000] border border-[#00ff00]/30"
+>
+  Del. Table
+</button>
+<button
+  onClick={() => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = async (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        editor?.chain().focus().setImage({ src: base64 }).run();
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }}
+  disabled={!isEditable}
+  className="px-3 py-1 rounded bg-black text-[#00ff00] hover:bg-[#002000] border border-[#00ff00]/30 disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  Image
+</button>
+
+<button
+  onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+  className={`px-3 py-1 rounded border border-[#00ff00]/30 text-[#00ff00] transition-all duration-200
+    ${editor.isActive('codeBlock') ? 'bg-[#00ff00]/20' : 'bg-black hover:bg-[#002000]'}`}
+>
+  Code Block
+</button>
+
+          <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
             disabled={
               !isEditable ||
@@ -432,24 +578,6 @@ return (
           >
             1. List
           </button>
-          <button
-            onClick={() => editor.chain().focus().toggleCodeBlock().run()} disabled={!isEditable}
-            className={`px-3 py-1 rounded ${editor.isActive("codeBlock")
-                ? "bg-[#004000] text-[#00ff00]"
-                : "bg-black text-[#00ff00] hover:bg-[#002000]"
-              } border border-[#00ff00]/30 disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            Toggle Code Block
-          </button>
-          <button
-            onClick={() => editor.chain().focus().setCodeBlock().run()} disabled={editor.isActive('codeBlock') && !isEditable}
-            className={`px-3 py-1 rounded ${editor.isActive("codeBlock")
-                ? "bg-[#004000] text-[#00ff00]"
-                : "bg-black text-[#00ff00] hover:bg-[#002000]"
-              } border border-[#00ff00]/30 disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            Set Code Block
-          </button>
           <div className="w-px h-6 bg-[#00ff00]/20 mx-1"></div>
           <button
             onClick={() => saveVersion(false)}
@@ -459,6 +587,14 @@ return (
           >
             <Save className="w-4 h-4" />
             <span className="hidden sm:inline">Save Version</span>
+          </button>
+          <button
+            onClick={() => setIsVersionModalOpen(true)}
+            className="flex items-center gap-1 px-3 py-1 rounded bg-black text-[#00ff00] hover:bg-[#002000] border border-[#00ff00]/30"
+            title="View version history"
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">History</span>
           </button>
         </div>
         <div className="flex items-center gap-3">
@@ -478,6 +614,14 @@ return (
     <div className="border border-[#00ff00]/20 rounded-lg bg-black min-h-[300px]">
       <EditorContent editor={editor} />
     </div>
+
+    <VersionHistoryModal
+      isOpen={isVersionModalOpen}
+      onClose={() => setIsVersionModalOpen(false)}
+      versions={getDocumentVersions(docId)}
+      onRestore={(version) => restoreVersion(version.id)}
+      onDelete={(versionId) => deleteVersion(versionId)}
+    />
   </div>
 );
 }

@@ -21,12 +21,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* ✅ Apply the font here */}
       <body className={`${shareTechMono.className} antialiased`}>
-        <div className="flex">
-          <Sidebar />
-          <main className="flex-1">{children}</main>
+        {/* ✅ Full height layout */}
+        <div className="flex h-screen overflow-hidden">
+          {/* ✅ Sidebar fixed on the left */}
+          <aside className="w-64 fixed top-0 left-0 h-full bg-[#111]">
+            <Sidebar />
+          </aside>
+
+          {/* ✅ Scrollable main content with padding for sidebar */}
+          <main className="ml-64 flex-1 overflow-y-auto bg-[#0a0a0a]">
+            {children}
+          </main>
         </div>
+
         <ToastNotificationProvider />
       </body>
     </html>
