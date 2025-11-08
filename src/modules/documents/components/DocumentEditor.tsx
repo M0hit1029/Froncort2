@@ -353,16 +353,18 @@ const editor = useEditor(
                 document.body.appendChild(popup);
 
                 // ✅ Attach dropdown near caret
-                tippyInstance = tippy("body", {
-                  getReferenceClientRect: props.clientRect,
-                  appendTo: () => document.body,
-                  content: popup,
-                  showOnCreate: true,
-                  interactive: true,
-                  trigger: "manual",
-                  placement: "bottom-start",
-                  theme: "light",
-                });
+               // @ts-ignore
+tippyInstance = tippy(document.body, {
+  getReferenceClientRect: props.clientRect ? props.clientRect() : undefined,
+  appendTo: () => document.body,
+  content: popup,
+  showOnCreate: true,
+  interactive: true,
+  trigger: "manual",
+  placement: "bottom-start",
+  theme: "light",
+});
+
               },
               onUpdate: (props) => {
                 if (!popup || !tippyInstance) return;
