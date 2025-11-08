@@ -1,24 +1,15 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useActivityStore, ActivityEvent } from '@/store/activityStore';
-import { subscribeToProject, RealtimeEvent } from '@/lib/realtime';
-import { useUserStore } from '@/store/userStore';
-import { useProjectStore } from '@/store/projectStore';
-import { useDocumentStore } from '@/store/documentStore';
-import { useKanbanStore } from '@/store/kanbanStore';
 
 interface ActivityFeedProps {
   projectId: string;
 }
 
 export default function ActivityFeed({ projectId }: ActivityFeedProps) {
-  const { activities, addActivity } = useActivityStore();
-  const users = useUserStore((state) => state.users);
-  const projects = useProjectStore((state) => state.projects);
-  const documents = useDocumentStore((state) => state.documents);
-  const { tasks, boards } = useKanbanStore();
+  const { activities } = useActivityStore();
   const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   // Filter activities for this project
@@ -33,73 +24,6 @@ export default function ActivityFeed({ projectId }: ActivityFeedProps) {
     }, 60000); // Update every minute
     return () => clearInterval(interval);
   }, []);
-
-  const handleRealtimeEvent = useCallback((event: RealtimeEvent) => {
-    const user = users.find((u) => u.id === event.userId);
-    const userName = user?.name || 'Unknown User';
-
-    switch (event.eventType) {
-      case 'document:update': {
-        const doc = documents.find((d) => d.id === event.payload.documentId);
-        addActivity({
-          type: 'document_edit',
-          userId: event.userId || 'unknown',
-          userName,
-          data: {
-            projectId,
-            documentId: event.payload.documentId,
-            documentTitle: doc?.title || event.payload.documentTitle || 'Unknown Document',
-          },
-        });
-        break;
-      }
-
-      case 'kanban:card:move': {
-        const task = tasks.find((t) => t.id === event.payload.taskId);
-        const fromBoard = boards.find((b) => b.id === event.payload.fromBoardId);
-        const toBoard = boards.find((b) => b.id === event.payload.toBoardId);
-        
-        addActivity({
-          type: 'task_move',
-          userId: event.userId || 'unknown',
-          userName,
-          data: {
-            projectId,
-            taskTitle: task?.title || event.payload.taskTitle || 'Unknown Task',
-            fromBoard: fromBoard?.title || 'Unknown',
-            toBoard: toBoard?.title || 'Unknown',
-          },
-        });
-        break;
-      }
-
-      case 'activity:log': {
-        if (event.payload.activityType === 'project_share') {
-          const targetUser = users.find((u) => u.id === event.payload.targetUserId);
-          const project = projects.find((p) => p.id === projectId);
-          
-          addActivity({
-            type: 'project_share',
-            userId: event.userId || 'unknown',
-            userName,
-            data: {
-              projectId,
-              projectName: project?.name || 'Unknown Project',
-              targetUserId: event.payload.targetUserId,
-              targetUserName: targetUser?.name || 'Unknown User',
-            },
-          });
-        }
-        break;
-      }
-    }
-  }, [users, documents, tasks, boards, projects, projectId, addActivity]);
-
-  // Subscribe to realtime events
-  useEffect(() => {
-    const unsubscribe = subscribeToProject(projectId, handleRealtimeEvent);
-    return unsubscribe;
-  }, [projectId, handleRealtimeEvent]);
 
   const formatActivityMessage = (activity: ActivityEvent): string => {
     switch (activity.type) {

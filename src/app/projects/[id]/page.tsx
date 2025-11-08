@@ -7,6 +7,7 @@ import KanbanView from '@/modules/kanban/KanbanView';
 import DocumentsView from '@/modules/documents/DocumentsView';
 import ActivityFeedView from '@/modules/activity/ActivityFeedView';
 import AssignedTasksView from '@/modules/kanban/AssignedTasksView';
+import GlobalActivityTracker from '@/components/GlobalActivityTracker';
 
 type Tab = 'kanban' | 'documents' | 'activity' | 'assigned';
 
@@ -39,6 +40,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="flex-1">
+      {/* Global Activity Tracker - always mounted to track activities regardless of active tab */}
+      <GlobalActivityTracker projectId={project.id} />
+      
       <ProjectHeader 
         projectId={project.id}
         projectName={project.name}
