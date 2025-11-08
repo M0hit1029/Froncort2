@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Sidebar from "./components/Sidebar";
+import { Share_Tech_Mono } from "next/font/google";
+
+const shareTechMono = Share_Tech_Mono({
+  subsets: ["latin"],
+  weight: "400",
+});
 
 export const metadata: Metadata = {
   title: "Froncort - Project Management",
@@ -14,12 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      {/* ✅ Apply the font here */}
+      <body className={`${shareTechMono.className} antialiased`}>
         <div className="flex">
           <Sidebar />
-          <main className="flex-1">
-            {children}
-          </main>
+          <main className="flex-1">{children}</main>
         </div>
       </body>
     </html>

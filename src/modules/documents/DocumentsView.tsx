@@ -128,11 +128,17 @@ export default function DocumentsView() {
       <div className="flex-1 overflow-y-auto">
         {selectedDoc ? (
           <div className="p-6">
-            <div className="mb-4">
-              <h1 className="text-3xl font-bold mb-2 text-[#00ff00]">{selectedDoc.title}</h1>
+            <div className="mb-4 flex items-center justify-between">
+              <div><h1 className="text-3xl font-bold mb-2 text-[#00ff00]">{selectedDoc.title}</h1>
               <p className="text-sm text-[#00ff00]/70">
                 Last updated: {new Date(selectedDoc.updatedAt).toLocaleString()}
-              </p>
+              </p></div>
+              <div className=''>
+                <Button 
+                className='cursor-pointer'>
+                  Version History
+                </Button>
+              </div>
             </div>
             <DocumentEditor
               projectId={selectedProjectId}

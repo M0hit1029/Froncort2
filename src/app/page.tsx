@@ -3,7 +3,7 @@ export default function Home() {
     <div className="flex min-h-screen items-center justify-center bg-black">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-[#00ff00] mb-4">
-          Welcome to Froncort
+          Welcome to CoVerse
         </h1>
         <p className="text-lg text-[#00ff00]/80 mb-8">
           Select a project from the sidebar to get started
