@@ -4,13 +4,6 @@
 
 ---
 
-### ⚙️ Core Framework
-
-- **Next.js** — React framework for server-side rendering, routing, and optimized deployment.  
-- **React + TypeScript** — Component-based UI development with static typing and better developer experience.
-
----
-
 ### 📝 Real-Time Collaboration
 
 - **Tiptap Editor** — Rich text editor built on ProseMirror, extended with image, table, code block, and mention support.  
