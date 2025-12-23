@@ -1,6 +1,6 @@
 ## 🧠 Tech Stack
 
-**Co-verse** is built with a modern, collaborative stack centered around **Next.js**, **React**, and **Yjs**, combining powerful real-time synchronization with a clean, scalable frontend architecture.
+**Co-verse** is built with a modern, collaborative stack centered around **Next.js**, **React**, and **Yjs**, combining powerful real-time synchronization with a clean, scalable frontend architecture
 
 ---
 
